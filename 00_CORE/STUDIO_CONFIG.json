@@ -1,0 +1,48 @@
+{
+  "studio_info": {
+    "name": "AI CINEMA STUDIO v1",
+    "version": "1.0.0",
+    "creator": "Utilisateur",
+    "primary_language": "French",
+    "target_audience": "Viewers intéressés par le marketing, la narration et la tech",
+    "content_pillar": "Marketing narratif & Cinéma IA"
+  },
+  "visual_identity": {
+    "aspect_ratio": "16:9",
+    "resolution": "4K",
+    "color_grading": "Cinematic, High Contrast, Teal & Orange accents",
+    "lighting_style": "Chiaroscuro, Naturalistic with dramatic highlights",
+    "camera_aesthetic": "Anamorphic lenses, shallow depth of field"
+  },
+  "production_rules": {
+    "max_episode_length_minutes": 5,
+    "min_scene_count_per_episode": 3,
+    "voice_consistency": "Strict adherence to character voice profiles",
+    "continuity_check": "Mandatory before export",
+    "qa_threshold": "95% adherence to MASTER_PROMPT"
+  },
+  "ai_constraints": {
+    "negative_prompts_global": [
+      "blurry", "distorted faces", "extra limbs", "bad anatomy", "text overlays", "watermarks", "low resolution", "cartoonish", "3d render look"
+    ],
+    "consistency_engine": "Enabled",
+    "character_lock": "True"
+  },
+  "pipeline_stages": [
+    "IDEE",
+    "SYNOPSIS",
+    "ARC_NARRATIF",
+    "EPISODE_OUTLINE",
+    "SCENE_BREAKDOWN",
+    "SHOT_LIST",
+    "STORYBOARD",
+    "CAMERA_SPECS",
+    "IMAGE_PROMPTS",
+    "VIDEO_PROMPTS",
+    "VOICE_GENERATION",
+    "AUDIO_MIXING",
+    "JSON_ASSEMBLY",
+    "QA_CHECK",
+    "EXPORT"
+  ]
+}

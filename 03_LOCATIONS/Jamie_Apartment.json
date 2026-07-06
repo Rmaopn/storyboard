@@ -1,0 +1,76 @@
+{
+  "location_id": "LOC_JAMIE_APT_001",
+  "name": "Jamie's Apartment",
+  "type": "Interior / Residential",
+  "atmosphere": "Sterile, quiet, slightly cold, vulnerable, modern but impersonal",
+  
+  "global_visual_rules": {
+    "color_palette": ["Cool White", "Slate Grey", "Muted Blue", "Dark Wood accents"],
+    "lighting_base": "Low-key, natural moonlight from windows, sparse artificial light",
+    "texture_focus": "Smooth surfaces, glass, cold tiles, soft fabrics (contrast)",
+    "camera_style": "Static shots for isolation, slow pans for exploration, voyeuristic angles"
+  },
+
+  "rooms": {
+    "entrance_hallway": {
+      "description": "A narrow, dimly lit corridor connecting the entrance to the rest of the apartment. The walls are painted a dark slate grey.",
+      "key_props": ["Intercom panel (right side of door)", "Shoe rack (minimalist)", "Coat hook"],
+      "lighting": "Very low, single overhead bulb or street light filtering through the door",
+      "sound_profile": "Echoey footsteps, muffled city noise from outside",
+      "ai_prompt_keywords": "narrow hallway, dark grey walls, intercom, shadowy, depth of field, cinematic noir"
+    },
+    
+    "bathroom": {
+      "description": "A modern, clean space with white tiles and a large bathtub. It represents Jamie's attempt at peace and self-care.",
+      "key_props": ["Large bathtub", "Rose petals", "White towels", "Mirror cabinet", "Soft bath mats"],
+      "lighting": "Soft, diffused, warm if candles are lit, otherwise cold white",
+      "sound_profile": "Running water, silence, distant sirens",
+      "ai_prompt_keywords": "modern bathroom, white tiles, bathtub with rose petals, steam, serene, clean lines, 8k"
+    },
+
+    "living_room": {
+      "description": "The main space, sparsely furnished. It feels large and empty, emphasizing Jamie's solitude.",
+      "key_props": ["Grey fabric sofa", "Low coffee table", "Minimalist lamp", "Large window with sheer curtains"],
+      "lighting": "Moonlight casting long shadows, occasional street light flickers",
+      "sound_profile": "Silence, ticking clock, floorboards creaking",
+      "ai_prompt_keywords": "spacious living room, grey sofa, minimalist decor, moonlight shadows, lonely atmosphere, wide angle"
+    },
+
+    "kitchen": {
+      "description": "Functional and modern, connected to the living area. A place of routine that becomes a place of tension.",
+      "key_props": ["White cabinets", "Stainless steel fridge", "Glassware", "Countertop island"],
+      "lighting": "Under-cabinet lighting (cold white), stark contrasts",
+      "sound_profile": "Fridge hum, glass clinking, water pouring",
+      "ai_prompt_keywords": "modern kitchen, white cabinets, stainless steel, cold lighting, sleek, reflective surfaces"
+    },
+
+    "bedroom": {
+      "description": "Jamie's private sanctuary. The most intimate space, violated by Franz's gaze in Episode 4.",
+      "key_props": ["Double bed with white linens", "Large wall mirror (crucial plot device)", "Bedside table", "Curtains"],
+      "lighting": "Dim bedside lamp or street light filtering through curtains",
+      "sound_profile": "Heavy breathing, fabric rustling, heartbeats",
+      "ai_prompt_keywords": "bedroom interior, large mirror, white linens, dim lighting, intimate, reflection shot, cinematic"
+    }
+  },
+
+  "continuity_constraints": {
+    "fixed_elements": [
+      "The intercom is always on the right side of the entrance door",
+      "The bedroom mirror is large and faces the door/corridor",
+      "The sofa is always grey and positioned against the main wall",
+      "The bathroom tiles are always white and glossy"
+    ],
+    "variable_elements": [
+      "Lighting intensity (depends on time of day/night)",
+      "Presence of rose petals (only in Ep 4 bathroom scene)",
+      "Broken glass on the floor (post-Episode 4 climax)"
+    ]
+  },
+
+  "ai_production_notes": {
+    "negative_prompts_location": [
+      "cluttered", "messy", "bright sunlight", "warm yellow tones", "cartoonish furniture", "dirty walls", "crowded"
+    ],
+    "consistency_tips": "Use the same seed or reference image for the apartment layout across all episodes to maintain spatial coherence. Ensure the 'cold' color temperature is maintained unless Anthony is present (bringing warmth)."
+  }
+}

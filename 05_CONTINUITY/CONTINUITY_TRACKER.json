@@ -1,0 +1,96 @@
+{
+  "continuity_metadata": {
+    "last_updated_episode": 4,
+    "last_updated_timestamp": "2026-07-06T23:45:00Z",
+    "status": "Active",
+    "next_episode_target": 5
+  },
+
+  "character_states": {
+    "Anthony": {
+      "location": "His home (Bedroom/Living room)",
+      "emotional_state": "Guilty, protective, anxious",
+      "physical_state": "Resting, slightly tense",
+      "wardrobe": "Dark casual home wear (t-shirt/trousers)",
+      "key_possessions": [
+        "Smartphone (with sent message to Jamie)",
+        "House keys"
+      ],
+      "knowledge": "Knows Franz is a threat; knows Jamie is in danger but hasn't acted yet."
+    },
+    "Jamie": {
+      "location": "Her Apartment (Bedroom/Hallway)",
+      "emotional_state": "Terrified, shocked, vulnerable",
+      "physical_state": "Shaken, heart racing, partially dressed (jeans under robe)",
+      "wardrobe": "White bathrobe, jeans underneath",
+      "key_possessions": [
+        "Smartphone (with received message from Anthony)",
+        "House keys"
+      ],
+      "knowledge": "Knows Franz found her; knows he is obsessed; just received comfort from Anthony."
+    },
+    "Franz": {
+      "location": "Outside Jamie's Apartment (Street/Shadows)",
+      "emotional_state": "Triumphant, calculating, predatory",
+      "physical_state": "Alert, standing still, watching",
+      "wardrobe": "Casual chic, dark jacket",
+      "key_possessions": [],
+      "knowledge": "Has seen Anthony's tenderness with his family; has terrified Jamie; knows he has the upper hand."
+    }
+  },
+
+  "environmental_states": {
+    "jamie_apartment": {
+      "hallway_floor": "CRITICAL: Covered in broken glass shards and spilled juice (from Episode 4 climax). DO NOT CLEAN until Episode 5 resolution.",
+      "bedroom_door": "Closed (slammed by Franz)",
+      "lighting": "Dim, moonlight only, tension-filled",
+      "atmosphere": "Silence after the storm, heavy breathing"
+    },
+    "anthony_home": {
+      "lighting": "Warm, dim night light",
+      "atmosphere": "Peaceful but fragile, sleeping family present"
+    },
+    "street_outside_jamie": {
+      "lighting": "Dark, urban night, street lamps",
+      "weather": "Clear, cold",
+      "presence": "Franz is currently stationary in the shadows."
+    }
+  },
+
+  "narrative_threads": {
+    "active_mysteries": [
+      "The high school incident involving Anthony, Jamie, and Franz.",
+      "Why Franz feels entitled to Jamie.",
+      "The identity of Anthony's partner and daughter (names not yet revealed)."
+    ],
+    "unresolved_conflicts": [
+      "Franz's intrusion into Jamie's safe space.",
+      "Anthony's text message vs. his physical absence.",
+      "The broken glass as a symbol of violated safety."
+    ]
+  },
+
+  "prop_tracking": {
+    "smartphone_anthony": {
+      "status": "Sent message 'Bonne nuit Jamie...'",
+      "location": "Bedside table at Anthony's home"
+    },
+    "smartphone_jamie": {
+      "status": "Received message, screen illuminated",
+      "location": "Kitchen counter or Bedroom (depending on Ep 5 start)"
+    },
+    "glass_juice": {
+      "status": "Shattered on hallway floor",
+      "location": "Jamie's Apartment Hallway",
+      "continuity_note": "Must be visible in wide shots of Ep 5 if scene continues immediately."
+    }
+  },
+
+  "qa_checklist_for_ep5_generation": [
+    "Ensure Jamie is still wearing the white robe/jeans combo if scene is immediate.",
+    "Ensure broken glass is present in the hallway if characters walk through it.",
+    "Ensure Franz is not inside the apartment anymore unless specified.",
+    "Maintain cold color palette for Jamie's scenes.",
+    "Verify Anthony's voice tone remains calm but underlyingly stressed."
+  ]
+}

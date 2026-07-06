@@ -1,0 +1,99 @@
+{
+  "character_id": "FRANZ_001",
+  "name": "Franz",
+  "role": "Antagonist / The Stalker / The Threat",
+  "age_range": "28-32",
+  "ethnicity": "Mediterranean / Southern European",
+  
+  "physical_profile": {
+    "face_shape": "Oval tending towards square, well-defined jawline",
+    "skin_tone": "Matte, slightly tanned/olive, smooth and homogeneous",
+    "eyes": {
+      "color": "Green-hazel with golden nuances",
+      "shape": "Almond, slightly deep-set",
+      "expression": "Intense, direct, determined, cold, predatory"
+    },
+    "hair": {
+      "style": "Short, modern cut, textured and wavy on top, faded sides",
+      "color": "Dark chestnut brown with lighter reflections on top",
+      "density": "Dense, full on top"
+    },
+    "body": {
+      "height_cm": 186,
+      "build": "Athletic, muscular, mesomorph, broad shoulders",
+      "posture": "Upright, confident, head held high, imposing presence"
+    },
+    "distinctive_features": [
+      "2-3 day stubble beard on jaw and chin",
+      "High, marked cheekbones",
+      "Straight, rectilinear nose bridge"
+    ]
+  },
+
+  "psychological_profile": {
+    "core_traits": ["Obsessive", "Manipulative", "Violent", "Calculating", "Arrogant"],
+    "current_state": "Hunting, watching, waiting for the right moment to strike",
+    "fears": "Losing control, being ignored, Anthony taking Jamie away",
+    "motivations": "Possessing Jamie, destroying Anthony's peace, asserting dominance"
+  },
+
+  "behavioral_engine": {
+    "voice_tone": "Grave, calm, authoritative, threatening, smooth and mocking",
+    "speech_patterns": "Uses short, imperative sentences, speaks slowly to intimidate, uses silence as a weapon",
+    "micro_expressions": [
+      "Cold, calculated smile that doesn't reach the eyes",
+      "Narrowing of eyes when observing a target",
+      "Twitching of the hand when holding back violence"
+    ],
+    "gestures": [
+      "Placing hand on shoulder to assert dominance",
+      "Invading personal space deliberately",
+      "Standing perfectly still while observing (predator stance)"
+    ],
+    "walk_cycle": "Confident, heavy steps, purposeful, takes up space"
+  },
+
+  "wardrobe_and_props": {
+    "style": "Casual chic, soigné, athletic, commercial model aesthetic",
+    "key_items": [
+      "Fitted shirts or jackets",
+      "Dark trousers",
+      "Boots or clean sneakers"
+    ],
+    "accessories": [
+      "None specific, relies on physical presence",
+      "Glass of juice (used as a prop for tension in Ep 4)"
+    ]
+  },
+
+  "relationships": {
+    "Anthony": "High school rival, sees him as an obstacle to be removed, hates his 'peace'",
+    "Jamie": "Object of obsession, believes she 'belongs' to him, wants to control her",
+    "Society": "Operates in the shadows, uses intimidation rather than legal means"
+  },
+
+  "ai_production_constraints": {
+    "master_prompt_keywords": [
+      "cinematic lighting", "chiaroscuro", "dramatic shadows", "photorealistic", "8k", "intense gaze", "menacing atmosphere"
+    ],
+    "negative_prompts": [
+      "smiling warmly", "friendly expression", "cartoon", "bright lighting", "distorted face", "bad anatomy", "text", "watermark"
+    ],
+    "consistency_locks": {
+      "hair_style": "Must be short, textured, and faded on sides",
+      "facial_hair": "Must have 2-3 day stubble",
+      "eye_color": "Must be green-hazel with golden nuances"
+    },
+    "camera_preferences": {
+      "shot_type": "Low-angle shots to emphasize dominance, close-ups on eyes for intensity",
+      "angle": "Often shot from shadows or behind objects to emphasize stalking behavior"
+    }
+  },
+
+  "story_arc_data": {
+    "episode_1_status": "Not present, but implied shadow over Anthony and Jamie's reunion",
+    "episode_2_status": "Confronted Anthony in the street, established his claim on Jamie",
+    "episode_3_status": "Watched Anthony's home from the shadows, discovered his 'weakness' (family)",
+    "episode_4_status": "Invaded Jamie's apartment, used psychological terror, climax with broken glass"
+  }
+}

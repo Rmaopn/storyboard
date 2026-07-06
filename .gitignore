@@ -1,0 +1,24 @@
+# Fichiers sensibles
+.env
+*.key
+credentials.json
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node modules (si vous avez du Node.js)
+node_modules/
+package-lock.json
+
+# Fichiers temporaires
+*.log
+*.tmp
+.cache/
+
+# Exports n8n temporaires
+*_PRODUCTION_PACKAGE.json
+
+# Dossier n8n local (si présent)
+.n8n/

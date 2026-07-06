@@ -1,0 +1,132 @@
+{
+  "series_metadata": {
+    "title": "Dramaia: The Unwritten Pages",
+    "genre": ["Psychological Thriller", "Family Drama", "Neo-Noir"],
+    "tone": "Intimate, Suspenseful, Melancholic, Cinematic",
+    "target_audience": "Adults interested in complex relationships, mystery, and high-quality visual storytelling",
+    "format": "Short-form cinematic episodes (3-5 minutes)",
+    "season_count": 1,
+    "episodes_per_season": 10
+  },
+
+  "core_themes": [
+    "The weight of the past on the present",
+    "Protective love vs. Obsessive possession",
+    "Secrets and their destructive power",
+    "The fragility of domestic peace"
+  ],
+
+  "narrative_engine": {
+    "primary_conflict": "Anthony's attempt to protect his current family from the resurfacing past (Jamie) and the present threat (Franz).",
+    "secondary_conflict": "Jamie's struggle to reclaim her autonomy from Franz's obsession.",
+    "mystery_hook": "What exactly happened between Anthony, Jamie, and Franz in high school? What is the 'story before the story' that Dramaya mentions?",
+    "pacing_style": "Slow-burn tension with sudden bursts of psychological or physical violence."
+  },
+
+  "season_1_arc": {
+    "act_1_setup": {
+      "episodes": [1, 2, 3],
+      "focus": "Reconnection and Threat Identification",
+      "key_events": [
+        "Anthony and Jamie reconnect after years.",
+        "Franz reappears and establishes his territorial claim over Jamie.",
+        "Franz discovers Anthony's family, identifying his vulnerability."
+      ]
+    },
+    "act_2_confrontation": {
+      "episodes": [4, 5, 6, 7],
+      "focus": "Escalation and Intrusion",
+      "key_events": [
+        "Franz invades Jamie's personal space (Episode 4).",
+        "Anthony tries to handle Franz alone to protect Jamie.",
+        "Franz begins to stalk Anthony's family directly.",
+        "Jamie discovers a hidden truth about Franz's past actions."
+      ]
+    },
+    "act_3_climax_resolution": {
+      "episodes": [8, 9, 10],
+      "focus": "The Breaking Point and Truth Revealed",
+      "key_events": [
+        "A direct confrontation between Anthony and Franz.",
+        "The 'high school secret' is fully revealed.",
+        "Jamie makes a definitive choice.",
+        "Resolution of the immediate threat, but lasting scars remain."
+      ]
+    }
+  },
+
+  "episode_log": {
+    "episode_1": {
+      "title": "Ce soir-là (That Night)",
+      "status": "Published",
+      "summary": "Anthony and Jamie reconnect at a gathering. A moment of nostalgia leads to a walk home, but Anthony refuses to enter her apartment, hinting at a complicated current life.",
+      "key_beats": ["Reunion", "Nostalgia", "Refusal", "Unresolved tension"]
+    },
+    "episode_2": {
+      "title": "La Rencontre (The Encounter)",
+      "status": "Published",
+      "summary": "Anthony is confronted by Franz on his way home. Franz reveals he saw them together and issues a veiled threat, claiming Jamie belongs to him.",
+      "key_beats": ["Confrontation", "Territorial claim", "Anthony's defiance"]
+    },
+    "episode_3": {
+      "title": "Le Silence (The Silence)",
+      "status": "Published",
+      "summary": "After the confrontation, Anthony returns to his sleeping family, feeling guilt and relief. He texts Jamie. Franz watches from the shadows, realizing Anthony has a weakness.",
+      "key_beats": ["Domestic peace", "Guilt", "Surveillance", "Franz's calculation"]
+    },
+    "episode_4": {
+      "title": "L'Intrusion (The Intrusion)",
+      "status": "Published",
+      "summary": "Franz forces his way into Jamie's apartment late at night. He uses psychological terror, watching her change through a mirror before a violent climax with a broken glass.",
+      "key_beats": ["Home invasion", "Psychological terror", "Vulnerability", "Cliffhanger text"]
+    },
+    "episode_5": {
+      "title": "Les Ombres du Passé (Shadows of the Past)",
+      "status": "Planned",
+      "summary": "Jamie, shaken, reaches out to Anthony. They meet to discuss Franz. We get flashbacks to their high school days, hinting at a traumatic event involving all three.",
+      "key_beats": ["Flashbacks", "Shared trauma", "Planning defense"]
+    },
+    "episode_6": {
+      "title": "La Filature (The Tail)",
+      "status": "Planned",
+      "summary": "Franz begins to stalk Anthony's daily routine, getting closer to his home and his daughter's school. Anthony notices the signs and becomes paranoid.",
+      "key_beats": ["Stalking", "Paranoia", "Threat to family"]
+    },
+    "episode_7": {
+      "title": "Le Piège (The Trap)",
+      "status": "Planned",
+      "summary": "Franz sets a trap for Anthony, trying to provoke him into a public scene to discredit him. Anthony almost falls for it but is saved by Jamie's warning.",
+      "key_beats": ["Manipulation", "Near-failure", "Teamwork"]
+    },
+    "episode_8": {
+      "title": "La Vérité Éclate (The Truth Breaks)",
+      "status": "Planned",
+      "summary": "The full story of high school is revealed: Franz was responsible for a major accident or betrayal that separated Anthony and Jamie. Anthony confronts Franz with this proof.",
+      "key_beats": ["Revelation", "Confrontation", "Moral high ground"]
+    },
+    "episode_9": {
+      "title": "Le Choc (The Clash)",
+      "status": "Planned",
+      "summary": "A physical and psychological showdown between Anthony and Franz. Jamie intervenes, not as a victim, but as a decisive force.",
+      "key_beats": ["Physical fight", "Jamie's agency", "Franz's unraveling"]
+    },
+    "episode_10": {
+      "title": "Les Pages Écrites (The Written Pages)",
+      "status": "Planned",
+      "summary": "The aftermath. Franz is removed from their lives (legally or otherwise). Anthony and Jamie find closure, not necessarily by getting back together, but by freeing themselves from the past.",
+      "key_beats": ["Resolution", "Closure", "New beginning", "Dramaya's narration conclusion"]
+    }
+  },
+
+  "visual_and_audio_style": {
+    "color_palette": {
+      "anthony_scenes": "Warm ambers, deep browns, soft shadows (Sanctuary)",
+      "jamie_scenes": "Cool blues, sterile whites, muted tones (Isolation/Vulnerability)",
+      "franz_scenes": "High contrast, deep blacks, cold greens, harsh lighting (Threat)"
+    },
+    "sound_design": {
+      "music": "Minimalist piano, ambient drones, sudden silence for tension",
+      "foley": "Emphasis on breathing, footsteps, fabric rustling, and environmental sounds (rain, city noise)"
+    }
+  }
+}

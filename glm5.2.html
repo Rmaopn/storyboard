@@ -1,0 +1,2287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Storyboard Linéaire — MVP</title>
+
+  <!-- Stack CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+
+  <style>
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    /* Zone d'image par défaut avec aspect 16/9 */
+    .card-image-zone {
+      aspect-ratio: 16 / 9;
+      background:
+        linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* Placeholder visuel quand pas d'image */
+    .placeholder-icon::before {
+      content: "🎬";
+      font-size: 2.5rem;
+      opacity: 0.6;
+    }
+
+    /* Animations */
+    .card-enter {
+      animation: cardEnter 0.25s ease-out;
+    }
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* SortableJS : style du drag */
+    .sortable-ghost {
+      opacity: 0.35;
+      background: #1e293b;
+    }
+    .sortable-chosen {
+      cursor: grabbing;
+    }
+    .sortable-drag {
+      cursor: grabbing;
+      transform: rotate(1.5deg);
+    }
+
+    /* Scrollbar discrète pour la timeline horizontale */
+    #timeline::-webkit-scrollbar { height: 10px; }
+    #timeline::-webkit-scrollbar-track { background: #0f172a; }
+    #timeline::-webkit-scrollbar-thumb {
+      background: #334155; border-radius: 8px;
+    }
+    #timeline::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* Boutons désactivés pendant fetch */
+    button.loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* Champ fichier invisible */
+    .hidden-file {
+      width: 0; height: 0; opacity: 0; position: absolute;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+    }
+  </style>
+</head>
+
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- ============ HEADER ============ -->
+  <header class="bg-slate-950 border-b border-slate-800 px-4 py-3 flex items-center justify-between gap-3 sticky top-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">S</div>
+      <div>
+        <h1 class="text-lg font-semibold leading-tight">Storyboard Linéaire</h1>
+        <p class="text-xs text-slate-400 leading-tight">MVP — Local-First + n8n</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button id="btn-add" class="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition text-sm font-medium flex items-center gap-2">
+        <span>➕</span><span class="hidden sm:inline">Ajouter un plan</span>
+      </button>
+      <button id="btn-clear" class="px-3 py-2 rounded-md bg-rose-600/90 hover:bg-rose-500 transition text-sm font-medium flex items-center gap-2">
+        <span>🗑️</span><span class="hidden sm:inline">Vider le projet</span>
+      </button>
+      <button id="btn-api" class="px-3 py-2 rounded-md bg-slate-700 hover:bg-slate-600 transition text-sm font-medium flex items-center gap-2">
+        <span>⚙️</span><span class="hidden sm:inline">Paramètres API</span>
+      </button>
+      <button id="btn-netflix" class="px-3 py-2 rounded-md bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition text-sm font-medium flex items-center gap-2">
+        <span>🎬</span><span class="hidden sm:inline">Studio Netflix</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============ TIMELINE ============ -->
+  <main class="flex-1 overflow-hidden flex flex-col">
+    <div id="timeline" class="flex-1 overflow-x-auto overflow-y-hidden p-6">
+      <div id="shots-container" class="flex items-start gap-4 min-w-min h-full">
+        <!-- Les cartes sont injectées ici -->
+        <div id="empty-state" class="flex flex-col items-center justify-center text-slate-500 mx-auto select-none">
+          <div class="text-6xl mb-4 opacity-50">🎞️</div>
+          <p class="text-lg font-medium text-slate-400">Aucun plan pour le moment</p>
+          <p class="text-sm mt-1">Clique sur « Ajouter un plan » pour démarrer votre storyboard.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barre d'état -->
+    <footer class="bg-slate-950/70 border-t border-slate-800 px-4 py-2 text-xs text-slate-400 flex items-center justify-between">
+      <span id="status-text">Prêt.</span>
+      <span id="count-text">0 plan(s)</span>
+    </footer>
+  </main>
+
+  <!-- ============ TEMPLATE CARTE ============ -->
+  <template id="shot-card-template">
+    <article
+      class="shot-card card-enter bg-slate-800 border border-slate-700 rounded-lg shadow-lg w-72 flex-shrink-0 flex flex-col overflow-hidden hover:border-slate-600 transition"
+      data-id="">
+      <!-- En-tête carte -->
+      <div class="flex items-center justify-between px-3 py-2 bg-slate-900/70 border-b border-slate-700">
+        <span class="text-xs font-semibold text-slate-300">
+          Plan <span class="shot-index text-indigo-400">—</span>
+        </span>
+        <span class="text-xs text-slate-500 drag-handle cursor-grab" title="Glisser pour réordonner">⠿</span>
+      </div>
+
+      <!-- Zone image -->
+      <div class="card-image-zone relative group cursor-pointer" data-image-zone>
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 placeholder-zone">
+          <div class="placeholder-icon mb-2"></div>
+          <span class="text-xs">Cliquez pour ajouter une image</span>
+        </div>
+        <img class="shot-image absolute inset-0 w-full h-full object-cover hidden" alt="Aperçu du plan" />
+        <!-- overlay au hover -->
+        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+          <button type="button" class="px-2 py-1 rounded bg-slate-100 text-slate-900 text-xs font-medium hover:bg-white" data-change-image>Changer</button>
+          <button type="button" class="px-2 py-1 rounded bg-rose-600 text-white text-xs font-medium hover:bg-rose-500" data-remove-image>Retirer</button>
+        </div>
+      </div>
+      <input type="file" accept="image/*" class="hidden-file" data-file-input />
+
+      <!-- Corps -->
+      <div class="p-3 flex flex-col gap-2 flex-1">
+        <label class="block">
+          <span class="text-xs font-medium text-slate-400">Description de la scène</span>
+          <textarea
+            class="scene-desc mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y"
+            rows="2"
+            placeholder="Que se passe-t-il dans ce plan ?"></textarea>
+        </label>
+
+        <label class="block">
+          <span class="text-xs font-medium text-slate-400">Prompt IA</span>
+          <textarea
+            class="ai-prompt mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y font-mono"
+            rows="3"
+            placeholder="Prompt envoyé à l'IA (image / vidéo)..."></textarea>
+        </label>
+
+        <!-- Actions -->
+        <div class="grid grid-cols-3 gap-1.5 mt-auto pt-2">
+          <button type="button" class="btn-gen-image px-2 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 transition text-xs font-medium">🖼️ Image</button>
+          <button type="button" class="btn-gen-video px-2 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 transition text-xs font-medium">🎥 Vidéo</button>
+          <button type="button" class="btn-delete px-2 py-1.5 rounded-md bg-rose-700/80 hover:bg-rose-600 transition text-xs font-medium">🗑️</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <!-- ============ MODAL API ============ -->
+  <div id="api-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop bg-black/50 p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="px-5 py-3 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+        <h2 class="text-base font-semibold">Paramètres API</h2>
+        <button id="api-modal-close" class="text-slate-400 hover:text-white text-xl leading-none">×</button>
+      </div>
+
+      <div class="p-5 space-y-5 overflow-y-auto">
+
+        <!-- SECTION 1 : WEBHOOK n8n -->
+        <section class="space-y-2">
+          <h3 class="text-sm font-semibold text-indigo-300 flex items-center gap-2">
+            <span>🔌</span> Webhook n8n / Endpoint local
+          </h3>
+          <label class="block text-xs font-medium text-slate-400">URL du webhook / API</label>
+          <input
+            id="api-url-input"
+            type="text"
+            placeholder="http://localhost:5679/webhook/storyboard"
+            class="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono" />
+          <p class="text-xs text-slate-500">
+            Les URL <code class="text-emerald-300">http://</code> locales sont acceptées (n8n en local).
+            Pour éviter le blocage « mixed content », ouvrez ce fichier en <code class="text-emerald-300">file://</code> ou via un serveur <code class="text-emerald-300">http://</code> — pas en <code>https://</code>.
+          </p>
+        </section>
+
+        <hr class="border-slate-700" />
+
+        <!-- SECTION 2 : CLÉS API -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-indigo-300 flex items-center gap-2">
+              <span>🔑</span> Clés API fournisseurs
+            </h3>
+            <span class="text-[10px] text-amber-400/80">⚠️ Stockées en clair dans IndexedDB (usage local uniquement)</span>
+          </div>
+
+          <div id="api-keys-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Mistral -->
+            <div class="space-y-1">
+              <label class="flex items-center gap-1.5 text-xs font-medium text-slate-300">
+                <span>Mistral AI</span>
+                <span class="text-[10px] text-slate-500">(chat / vision)</span>
+              </label>
+              <input
+                data-api-key="mistral"
+                type="password"
+                placeholder="sk-..."
+                class="api-key-input w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <button type="button" class="toggle-visibility text-[10px] text-slate-500 hover:text-slate-300">👁️ afficher</button>
+            </div>
+
+            <!-- Google (Gemini / Vertex) -->
+            <div class="space-y-1">
+              <label class="flex items-center gap-1.5 text-xs font-medium text-slate-300">
+                <span>Google AI</span>
+                <span class="text-[10px] text-slate-500">(Gemini / Imagen)</span>
+              </label>
+              <input
+                data-api-key="google"
+                type="password"
+                placeholder="AIza..."
+                class="api-key-input w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <button type="button" class="toggle-visibility text-[10px] text-slate-500 hover:text-slate-300">👁️ afficher</button>
+            </div>
+
+            <!-- OpenAI -->
+            <div class="space-y-1">
+              <label class="flex items-center gap-1.5 text-xs font-medium text-slate-300">
+                <span>OpenAI</span>
+                <span class="text-[10px] text-slate-500">(DALL·E / GPT)</span>
+              </label>
+              <input
+                data-api-key="openai"
+                type="password"
+                placeholder="sk-..."
+                class="api-key-input w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <button type="button" class="toggle-visibility text-[10px] text-slate-500 hover:text-slate-300">👁️ afficher</button>
+            </div>
+
+            <!-- Anthropic -->
+            <div class="space-y-1">
+              <label class="flex items-center gap-1.5 text-xs font-medium text-slate-300">
+                <span>Anthropic</span>
+                <span class="text-[10px] text-slate-500">(Claude)</span>
+              </label>
+              <input
+                data-api-key="anthropic"
+                type="password"
+                placeholder="sk-ant-..."
+                class="api-key-input w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <button type="button" class="toggle-visibility text-[10px] text-slate-500 hover:text-slate-300">👁️ afficher</button>
+            </div>
+
+            <!-- Stability AI -->
+            <div class="space-y-1">
+              <label class="flex items-center gap-1.5 text-xs font-medium text-slate-300">
+                <span>Stability AI</span>
+                <span class="text-[10px] text-slate-500">(Stable Diffusion)</span>
+              </label>
+              <input
+                data-api-key="stability"
+                type="password"
+                placeholder="sk-..."
+                class="api-key-input w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <button type="button" class="toggle-visibility text-[10px] text-slate-500 hover:text-slate-300">👁️ afficher</button>
+            </div>
+
+            <!-- Custom -->
+            <div class="space-y-1">
+              <label class="flex items-center gap-1.5 text-xs font-medium text-slate-300">
+                <span>Custom</span>
+                <span class="text-[10px] text-slate-500">(autre provider)</span>
+              </label>
+              <input
+                data-api-key="custom"
+                type="password"
+                placeholder="votre clé..."
+                class="api-key-input w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <button type="button" class="toggle-visibility text-[10px] text-slate-500 hover:text-slate-300">👁️ afficher</button>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-500 pt-1">
+            Ces clés sont injectées dans le payload envoyé à votre webhook n8n. Votre workflow n8n peut alors appeler directement le provider concerné sans avoir à stocker la clé.
+          </p>
+        </section>
+
+        <hr class="border-slate-700" />
+
+        <!-- SECTION 3 : Aperçu du payload -->
+        <section class="bg-slate-900/60 border border-slate-700 rounded-md p-3 text-xs text-slate-400 font-mono">
+          <div class="text-slate-300 mb-1">Payload envoyé au webhook :</div>
+<pre>{
+  "action": "generate_image",
+  "shotId": "abc-123",
+  "prompt": "...",
+  "sceneDescription": "...",
+  "imageBase64": "data:image/...;base64,...",
+  "apiKeys": {
+    "mistral": "sk-...",
+    "google": "AIza...",
+    "openai": "sk-...",
+    "anthropic": "sk-ant-...",
+    "stability": "sk-...",
+    "custom": "..."
+  }
+}</pre>
+        </section>
+
+      </div>
+
+      <div class="px-5 py-3 border-t border-slate-700 flex items-center justify-between gap-2 flex-shrink-0">
+        <button id="api-modal-test" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm flex items-center gap-1.5">
+          <span>🧪</span> Tester la connexion
+        </button>
+        <div class="flex gap-2">
+          <button id="api-modal-cancel" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm">Annuler</button>
+          <button id="api-modal-save" class="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-sm font-medium">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL STUDIO NETFLIX ============ -->
+  <div id="netflix-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop bg-black/50 p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-3xl shadow-2xl max-h-[92vh] flex flex-col">
+      <div class="px-5 py-3 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+        <div>
+          <h2 class="text-base font-semibold flex items-center gap-2"><span>🎬</span> Studio Netflix — Génération par agents IA</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Pipeline multi-agents multi-provider : Mistral, OpenAI, Anthropic, Google AI</p>
+        </div>
+        <button id="netflix-modal-close" class="text-slate-400 hover:text-white text-xl leading-none">×</button>
+      </div>
+
+      <div class="p-5 space-y-5 overflow-y-auto">
+
+        <!-- SECTION 1 : Brief de production -->
+        <section class="space-y-3">
+          <h3 class="text-sm font-semibold text-indigo-300 flex items-center gap-2"><span>🎯</span> Brief de production</h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Genre</label>
+              <select id="netflix-genre" class="w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="drame">Drame</option>
+                <option value="thriller_psychologique" selected>Thriller psychologique</option>
+                <option value="drame_thriller">Drame + Thriller psychologique (hybride)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Format</label>
+              <select id="netflix-format" class="w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="film_90">Film — 90 min</option>
+                <option value="film_120" selected>Film — 120 min</option>
+                <option value="pilote_45">Pilote série — 45 min</option>
+                <option value="episode_50">Épisode série — 50 min</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Thème / prémisse (concept central)</label>
+            <textarea id="netflix-theme" rows="2" class="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y" placeholder="Ex : Une psychologue découvrait que son patient le plus brillant manipule ses souvenirs…"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Contraintes / ton / influences (optionnel)</label>
+            <textarea id="netflix-constraints" rows="2" class="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y" placeholder="Ex : ton Black Mirror, influence Mindhunter, twist final obligatoire, flashback narratif…"></textarea>
+          </div>
+
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button id="netflix-generate-agents" class="px-3 py-2 rounded-md bg-purple-600 hover:bg-purple-500 transition text-sm font-medium flex items-center gap-2">
+              <span>🤖</span> Générer / Régénérer les agents IA
+            </button>
+            <button id="netflix-run-pipeline" class="px-3 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 transition text-sm font-medium flex items-center gap-2">
+              <span>🎬</span> Lancer la production
+            </button>
+            <button id="netflix-push-storyboard" class="px-3 py-2 rounded-md bg-sky-600 hover:bg-sky-500 transition text-sm font-medium flex items-center gap-2">
+              <span>🎞️</span> Pousser les scènes vers le storyboard
+            </button>
+          </div>
+        </section>
+
+        <hr class="border-slate-700" />
+
+        <!-- SECTION 2 : Agents IA -->
+        <section class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-indigo-300 flex items-center gap-2"><span>👥</span> Équipe d'agents IA</h3>
+            <span id="netflix-agents-count" class="text-xs text-slate-500">0 agent</span>
+          </div>
+
+          <div id="netflix-agents-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+            <div class="text-xs text-slate-500 italic col-span-full">Aucun agent. Cliquez sur « Ajouter un agent » pour en créer un manuellement, ou « Générer » pour la création automatique.</div>
+          </div>
+
+          <!-- Boutons d'action sur les agents -->
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button id="netflix-add-agent-btn" class="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 transition text-xs font-medium flex items-center gap-1.5">
+              <span>＋</span> Ajouter un agent
+            </button>
+            <button id="netflix-toggle-form-btn" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 transition text-xs font-medium hidden">
+              <span>▾</span> Masquer le formulaire
+            </button>
+          </div>
+
+          <!-- FORMULAIRE CRÉATION / ÉDITION D'AGENT (caché par défaut) -->
+          <div id="agent-form-container" class="hidden border border-slate-600 rounded-lg p-4 space-y-3 bg-slate-900/50">
+            <div class="flex items-center justify-between">
+              <h4 id="agent-form-title" class="text-sm font-semibold text-emerald-300">Nouvel agent</h4>
+              <button id="agent-form-cancel" class="text-slate-400 hover:text-white text-xs">✕ Annuler</button>
+            </div>
+
+            <input type="hidden" id="agent-form-edit-id" value="">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Nom de l'agent <span class="text-rose-400">*</span></label>
+                <input type="text" id="agent-form-name" class="w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="ex. ScriptDoctor, Dialoguiste…">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Rôle (clé)</label>
+                <input type="text" id="agent-form-role" class="w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="ex. script_doctor, dialoguiste…">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Description courte</label>
+              <input type="text" id="agent-form-desc" class="w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Résumé du rôle en une phrase">
+            </div>
+
+            <!-- Provider + Modèle (dépendants) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Provider (IA) <span class="text-rose-400">*</span></label>
+                <select id="agent-form-provider" class="w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                  <option value="mistral">Mistral AI</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="google">Google AI</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Modèle</label>
+                <select id="agent-form-model" class="w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </select>
+              </div>
+            </div>
+
+            <!-- Température -->
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Température : <span id="agent-form-temp-val" class="text-indigo-300">0.7</span></label>
+              <input type="range" id="agent-form-temp" min="0" max="2" step="0.05" value="0.7" class="w-full accent-indigo-500">
+            </div>
+
+            <!-- System Prompt -->
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">System Prompt (instructions) <span class="text-rose-400">*</span></label>
+              <textarea id="agent-form-prompt" rows="4" class="w-full rounded-md bg-slate-900 border border-slate-700 px-2.5 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y" placeholder="Instructions détaillées pour cet agent…"></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-1">
+              <button id="agent-form-cancel-2" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-xs">Annuler</button>
+              <button id="agent-form-save" class="px-4 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-xs font-medium">💾 Enregistrer l'agent</button>
+            </div>
+          </div>
+        </section>
+
+        <hr class="border-slate-700" />
+
+        <!-- SECTION 3 : Pipeline en cours / résultats -->
+        <section class="space-y-2">
+          <h3 class="text-sm font-semibold text-indigo-300 flex items-center gap-2"><span>⚙️</span> Pipeline &amp; production</h3>
+          <div id="netflix-pipeline-log" class="bg-slate-900/70 border border-slate-700 rounded-md p-3 text-xs font-mono text-slate-300 max-h-64 overflow-y-auto space-y-1">
+            <div class="text-slate-500">— En attente de lancement —</div>
+          </div>
+
+          <details class="text-xs">
+            <summary class="cursor-pointer text-slate-400 hover:text-slate-200">Voir le JSON de la production</summary>
+            <pre id="netflix-production-json" class="mt-2 bg-slate-950 border border-slate-800 rounded p-2 text-[11px] text-slate-400 max-h-64 overflow-auto">null</pre>
+          </details>
+        </section>
+
+        <hr class="border-slate-700" />
+
+        <!-- SECTION 4 : Aide mémoire -->
+        <section class="bg-slate-900/60 border border-slate-700 rounded-md p-3 text-xs text-slate-400">
+          <div class="text-slate-300 mb-1 font-medium">Comment ça marche ?</div>
+          <ol class="list-decimal list-inside space-y-0.5">
+            <li>Renseignez vos clés API dans « Paramètres API » (Mistral, OpenAI, Anthropic, Google…).</li>
+            <li><strong>Manuel :</strong> Cliquez « Ajouter un agent », choisissez un provider + modèle, rédigez le system prompt.</li>
+            <li><strong>Automatique :</strong> « Générer les agents IA » crée 7 spécialistes via <code class="text-indigo-300">mistral-large-2512</code>. Vous pouvez ensuite les éditer pour changer leur provider/modèle.</li>
+            <li>Chaque agent utilise <strong>sa propre clé API et son modèle</strong> au moment du pipeline.</li>
+            <li>« Lancer la production » exécute le pipeline séquentiel ; chaque agent enrichit le JSON de production.</li>
+            <li>« Pousser les scènes vers le storyboard » crée une carte par scène dans la timeline.</li>
+          </ol>
+        </section>
+
+      </div>
+
+      <div class="px-5 py-3 border-t border-slate-700 flex justify-end gap-2 flex-shrink-0">
+        <button id="netflix-modal-close-bottom" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL CONFIRMATION VIDAGE ============ -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop bg-black/50 p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-sm shadow-2xl">
+      <div class="p-5">
+        <h2 class="text-base font-semibold mb-2">Vider le projet ?</h2>
+        <p class="text-sm text-slate-400">Tous les plans seront définitivement supprimés du stockage local. Cette action est irréversible.</p>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-700 flex justify-end gap-2">
+        <button id="confirm-modal-cancel" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm">Annuler</button>
+        <button id="confirm-modal-ok" class="px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-sm font-medium">Tout supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCRIPT ============ -->
+  <script>
+  (function () {
+    "use strict";
+
+    // ====================================================
+    //  CONFIGURATION LOCALFORAGE (IndexedDB)
+    // ====================================================
+    const store = localforage.createInstance({
+      name: "storyboard-mvp",
+      storeName: "kv",
+      description: "Stockage local-first du storyboard"
+    });
+
+    const KEYS = {
+      SHOTS: "shots",         // tableau d'objets {id, imageBase64, sceneDescription, aiPrompt}
+      API_URL: "api_url",
+      API_KEYS: "api_keys",   // objet { mistral, google, openai, anthropic, stability, custom }
+      NFLX_AGENTS: "netflix_agents",       // tableau d'agents IA spécialisés
+      NFLX_PRODUCTION: "netflix_production" // dernière production (objet JSON complet)
+    };
+
+    // Liste des providers gérés (doit matcher les data-api-key du HTML)
+    const API_PROVIDERS = ["mistral", "google", "openai", "anthropic", "stability", "custom"];
+
+    // Endpoint Mistral (chat completions) — utilisé pour la génération d'agents et le pipeline Netflix
+    const MISTRAL_ENDPOINT = "https://api.mistral.ai/v1/chat/completions";
+    const MISTRAL_MODEL_AGENT_GEN = "mistral-large-2512";   // pour générer les 7 agents
+    const MISTRAL_MODEL_PIPELINE  = "mistral-large-2512";   // pour exécuter le pipeline (peut être abaissé à mistral-medium-2508 si besoin de coût)
+
+    // ====================================================
+    //  CATALOGUE MULTI-PROVIDER
+    // ====================================================
+    const PROVIDERS = {
+      mistral: {
+        name: "Mistral AI",
+        endpoint: "https://api.mistral.ai/v1/chat/completions",
+        models: [
+          { id: "mistral-large-2512",  name: "Mistral Large" },
+          { id: "mistral-medium-2508", name: "Mistral Medium" },
+          { id: "mistral-small-2506",  name: "Mistral Small" },
+          { id: "codestral-2508",      name: "Codestral (Code)" },
+          { id: "devstral-2512",       name: "DevMind (Dev)" },
+          { id: "pixtral-large-2411",  name: "Pixtral Vision" },
+        ]
+      },
+      openai: {
+        name: "OpenAI",
+        endpoint: "https://api.openai.com/v1/chat/completions",
+        models: [
+          { id: "gpt-4o",       name: "GPT-4o" },
+          { id: "gpt-4o-mini",  name: "GPT-4o Mini" },
+          { id: "gpt-4-turbo",  name: "GPT-4 Turbo" },
+          { id: "o1",           name: "o1" },
+          { id: "o1-mini",      name: "o1 Mini" },
+          { id: "o3-mini",      name: "o3 Mini" },
+        ]
+      },
+      anthropic: {
+        name: "Anthropic",
+        endpoint: "https://api.anthropic.com/v1/messages",
+        models: [
+          { id: "claude-sonnet-4-20250514",    name: "Claude Sonnet 4" },
+          { id: "claude-3-5-sonnet-20241022",  name: "Claude 3.5 Sonnet" },
+          { id: "claude-3-5-haiku-20241022",   name: "Claude 3.5 Haiku" },
+          { id: "claude-3-opus-20240229",      name: "Claude 3 Opus" },
+        ]
+      },
+      google: {
+        name: "Google AI",
+        endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        models: [
+          { id: "gemini-2.5-pro",  name: "Gemini 2.5 Pro" },
+          { id: "gemini-2.5-flash",name: "Gemini 2.5 Flash" },
+          { id: "gemini-2.0-flash",name: "Gemini 2.0 Flash" },
+        ]
+      },
+      custom: {
+        name: "Custom",
+        endpoint: "", // l'utilisateur doit le définir
+        models: [
+          { id: "custom-model", name: "Modèle Custom" }
+        ]
+      }
+    };
+
+    // ====================================================
+    //  ÉTAT
+    // ====================================================
+    let state = {
+      shots: [],
+      apiUrl: "",
+      apiKeys: {
+        mistral: "",
+        google: "",
+        openai: "",
+        anthropic: "",
+        stability: "",
+        custom: ""
+      },
+      netflix: {
+        agents: [],          // tableau d'objets { id, role, name, systemPrompt, model, temperature, description }
+        production: null,    // objet JSON de la production en cours / dernière
+        running: false       // flag pipeline en cours
+      }
+    };
+
+    // ====================================================
+    //  RÉFÉRENCES DOM
+    // ====================================================
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+    const shotsContainer = $("#shots-container");
+    const emptyState = $("#empty-state");
+    const cardTemplate = $("#shot-card-template");
+    const statusText = $("#status-text");
+    const countText = $("#count-text");
+
+    const btnAdd = $("#btn-add");
+    const btnClear = $("#btn-clear");
+    const btnApi = $("#btn-api");
+
+    const apiModal = $("#api-modal");
+    const apiUrlInput = $("#api-url-input");
+    const apiModalClose = $("#api-modal-close");
+    const apiModalCancel = $("#api-modal-cancel");
+    const apiModalSave = $("#api-modal-save");
+    const apiModalTest = $("#api-modal-test");
+
+    const confirmModal = $("#confirm-modal");
+    const confirmModalCancel = $("#confirm-modal-cancel");
+    const confirmModalOk = $("#confirm-modal-ok");
+
+    // --- Studio Netflix ---
+    const btnNetflix = $("#btn-netflix");
+    const netflixModal = $("#netflix-modal");
+    const netflixModalClose = $("#netflix-modal-close");
+    const netflixModalCloseBottom = $("#netflix-modal-close-bottom");
+    const netflixGenre = $("#netflix-genre");
+    const netflixFormat = $("#netflix-format");
+    const netflixTheme = $("#netflix-theme");
+    const netflixConstraints = $("#netflix-constraints");
+    const netflixGenerateAgents = $("#netflix-generate-agents");
+    const netflixRunPipeline = $("#netflix-run-pipeline");
+    const netflixPushStoryboard = $("#netflix-push-storyboard");
+    const netflixAgentsGrid = $("#netflix-agents-grid");
+    const netflixAgentsCount = $("#netflix-agents-count");
+    const netflixPipelineLog = $("#netflix-pipeline-log");
+    const netflixProductionJson = $("#netflix-production-json");
+
+    // ====================================================
+    //  UTILITAIRES
+    // ====================================================
+    function uid() {
+      return "shot-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+
+    function setStatus(msg) {
+      statusText.textContent = msg;
+    }
+
+    function updateCount() {
+      countText.textContent = state.shots.length + " plan(s)";
+      emptyState.style.display = state.shots.length === 0 ? "flex" : "none";
+    }
+
+    function debounce(fn, wait = 400) {
+      let t;
+      return function (...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result); // déjà en data:URL base64
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ====================================================
+    //  PERSISTANCE
+    // ====================================================
+    async function persistShots() {
+      try {
+        await store.setItem(KEYS.SHOTS, state.shots);
+        setStatus("Projet sauvegardé.");
+      } catch (e) {
+        console.error("Erreur de sauvegarde IndexedDB:", e);
+        setStatus("⚠️ Erreur de sauvegarde.");
+      }
+    }
+    const persistShotsDebounced = debounce(persistShots, 350);
+
+    async function persistApiUrl() {
+      try {
+        await store.setItem(KEYS.API_URL, state.apiUrl);
+      } catch (e) {
+        console.error("Erreur de sauvegarde API URL:", e);
+      }
+    }
+
+    async function persistApiKeys() {
+      try {
+        await store.setItem(KEYS.API_KEYS, state.apiKeys);
+      } catch (e) {
+        console.error("Erreur de sauvegarde clés API:", e);
+      }
+    }
+
+    async function loadAll() {
+      const shots = await store.getItem(KEYS.SHOTS);
+      state.shots = Array.isArray(shots) ? shots : [];
+
+      const apiUrl = await store.getItem(KEYS.API_URL);
+      state.apiUrl = typeof apiUrl === "string" ? apiUrl : "";
+
+      const apiKeys = await store.getItem(KEYS.API_KEYS);
+      if (apiKeys && typeof apiKeys === "object") {
+        // Fusion pour garantir toutes les clés attendues (même si versions futures ajoutent des providers)
+        state.apiKeys = { ...state.apiKeys, ...apiKeys };
+      }
+
+      const nflxAgents = await store.getItem(KEYS.NFLX_AGENTS);
+      state.netflix.agents = Array.isArray(nflxAgents) ? nflxAgents : [];
+
+      const nflxProduction = await store.getItem(KEYS.NFLX_PRODUCTION);
+      state.netflix.production = (nflxProduction && typeof nflxProduction === "object") ? nflxProduction : null;
+
+      // Hydrate les inputs de la modale
+      apiUrlInput.value = state.apiUrl;
+      populateApiKeysInputs();
+      renderNetflixAgents();
+      renderNetflixProduction();
+    }
+
+    function populateApiKeysInputs() {
+      $$(".api-key-input").forEach(input => {
+        const provider = input.dataset.apiKey;
+        input.value = (state.apiKeys && state.apiKeys[provider]) || "";
+      });
+    }
+
+    // ====================================================
+    //  RENDU
+    // ====================================================
+    function renderAll() {
+      // Vide (sans casser #empty-state)
+      $$(".shot-card", shotsContainer).forEach(el => el.remove());
+      state.shots.forEach((shot, i) => {
+        const node = buildCard(shot, i);
+        shotsContainer.appendChild(node);
+      });
+      updateCount();
+      reindex();
+    }
+
+    function buildCard(shot, index) {
+      const frag = cardTemplate.content.cloneNode(true);
+      const card = frag.querySelector(".shot-card");
+      card.dataset.id = shot.id;
+
+      const img = $(".shot-image", card);
+      const placeholder = $(".placeholder-zone", card);
+      const fileInput = $("[data-file-input]", card);
+
+      if (shot.imageBase64) {
+        img.src = shot.imageBase64;
+        img.classList.remove("hidden");
+        placeholder.classList.add("hidden");
+      }
+
+      $(".scene-desc", card).value = shot.sceneDescription || "";
+      $(".ai-prompt", card).value = shot.aiPrompt || "";
+
+      // Clic sur la zone image => ouvre le file picker
+      const imageZone = $("[data-image-zone]", card);
+      imageZone.addEventListener("click", (e) => {
+        // évite conflit avec boutons overlay
+        if (e.target.closest("[data-remove-image]")) {
+          e.preventDefault();
+          removeImage(card);
+          return;
+        }
+        if (e.target.closest("[data-change-image]")) {
+          e.preventDefault();
+          fileInput.click();
+          return;
+        }
+        // clic simple sur la zone
+        fileInput.click();
+      });
+
+      fileInput.addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          setStatus("Chargement de l'image…");
+          const b64 = await fileToBase64(file);
+          const shot = getShotById(card.dataset.id);
+          if (!shot) return;
+          shot.imageBase64 = b64;
+          img.src = b64;
+          img.classList.remove("hidden");
+          placeholder.classList.add("hidden");
+          await persistShots();
+          setStatus("Image ajoutée.");
+        } catch (err) {
+          console.error(err);
+          setStatus("⚠️ Échec du chargement de l'image.");
+        } finally {
+          fileInput.value = "";
+        }
+      });
+
+      // Textareas : autosave debouncé
+      $(".scene-desc", card).addEventListener("input", (e) => {
+        const shot = getShotById(card.dataset.id);
+        if (!shot) return;
+        shot.sceneDescription = e.target.value;
+        persistShotsDebounced();
+        setStatus("Modification enregistrée…");
+      });
+      $(".ai-prompt", card).addEventListener("input", (e) => {
+        const shot = getShotById(card.dataset.id);
+        if (!shot) return;
+        shot.aiPrompt = e.target.value;
+        persistShotsDebounced();
+        setStatus("Modification enregistrée…");
+      });
+
+      // Boutons d'action
+      $(".btn-gen-image", card).addEventListener("click", () => {
+        callApi(card, "generate_image");
+      });
+      $(".btn-gen-video", card).addEventListener("click", () => {
+        callApi(card, "generate_video");
+      });
+      $(".btn-delete", card).addEventListener("click", () => {
+        deleteCard(card.dataset.id);
+      });
+
+      return card;
+    }
+
+    function reindex() {
+      $$(".shot-card", shotsContainer).forEach((card, i) => {
+        const idxEl = $(".shot-index", card);
+        if (idxEl) idxEl.textContent = "#" + (i + 1);
+      });
+    }
+
+    function getShotById(id) {
+      return state.shots.find(s => s.id === id) || null;
+    }
+
+    function removeImage(card) {
+      const shot = getShotById(card.dataset.id);
+      if (!shot) return;
+      shot.imageBase64 = null;
+      const img = $(".shot-image", card);
+      const placeholder = $(".placeholder-zone", card);
+      img.classList.add("hidden");
+      img.removeAttribute("src");
+      placeholder.classList.remove("hidden");
+      persistShots();
+      setStatus("Image retirée.");
+    }
+
+    // ====================================================
+    //  ACTIONS GLOBALES
+    // ====================================================
+    function addCard() {
+      const shot = {
+        id: uid(),
+        imageBase64: null,
+        sceneDescription: "",
+        aiPrompt: ""
+      };
+      state.shots.push(shot);
+      const node = buildCard(shot, state.shots.length - 1);
+      shotsContainer.appendChild(node);
+      updateCount();
+      reindex();
+      persistShots();
+      setStatus("Nouveau plan ajouté.");
+
+      // Scroll vers la droite pour voir la nouvelle carte
+      $("#timeline").scrollTo({
+        left: $("#timeline").scrollWidth,
+        behavior: "smooth"
+      });
+
+      // Focus sur la description
+      setTimeout(() => {
+        const desc = $(".scene-desc", node);
+        if (desc) desc.focus();
+      }, 200);
+    }
+
+    function deleteCard(id) {
+      state.shots = state.shots.filter(s => s.id !== id);
+      const card = shotsContainer.querySelector(`.shot-card[data-id="${id}"]`);
+      if (card) {
+        card.style.transition = "opacity 0.2s, transform 0.2s";
+        card.style.opacity = "0";
+        card.style.transform = "translateY(8px)";
+        setTimeout(() => card.remove(), 180);
+      }
+      updateCount();
+      reindex();
+      persistShots();
+      setStatus("Plan supprimé.");
+    }
+
+    async function clearAll() {
+      state.shots = [];
+      await store.setItem(KEYS.SHOTS, state.shots);
+      renderAll();
+      setStatus("Projet vidé.");
+    }
+
+    // ====================================================
+    //  COMMUNICATION API / WEBHOOK n8n
+    // ====================================================
+    async function callApi(card, action) {
+      const shot = getShotById(card.dataset.id);
+      if (!shot) return;
+
+      if (!state.apiUrl) {
+        setStatus("⚠️ Aucune URL d'API configurée. Cliquez sur « Paramètres API ».");
+        alert("Aucune URL d'API configurée.\nCliquez sur « Paramètres API » pour en ajouter une.");
+        openApiModal();
+        return;
+      }
+
+      const button = action === "generate_image"
+        ? $(".btn-gen-image", card)
+        : $(".btn-gen-video", card);
+      const originalText = button.innerHTML;
+      button.classList.add("loading");
+      button.innerHTML = "⏳ Chargement...";
+      setStatus(`Envoi du fetch ${action} au webhook…`);
+
+      // Snapshot des clés API non-vides au moment de l'envoi.
+      // On ne transmet que les clés réellement saisies pour éviter de polluer le payload.
+      const apiKeysSnapshot = {};
+      API_PROVIDERS.forEach(p => {
+        const v = (state.apiKeys && state.apiKeys[p]) || "";
+        if (v.trim()) apiKeysSnapshot[p] = v.trim();
+      });
+
+      const payload = {
+        action: action,
+        shotId: shot.id,
+        prompt: shot.aiPrompt || "",
+        sceneDescription: shot.sceneDescription || "",
+        imageBase64: shot.imageBase64 || null,
+        apiKeys: apiKeysSnapshot
+      };
+
+      try {
+        const res = await fetch(state.apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        let data = null;
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          data = await res.text();
+        }
+
+        console.log(`[Storyboard] Réponse ${action} (shot ${shot.id}):`, {
+          status: res.status,
+          ok: res.ok,
+          data
+        });
+
+        // Si l'API renvoie une nouvelle image (base64 ou URL), on l'affiche
+        if (data && typeof data === "object") {
+          const newImg = data.imageBase64 || data.image_base64 || data.imageUrl || data.image_url || data.url;
+          if (typeof newImg === "string" && newImg.length > 0) {
+            // Si c'est une URL distante, on la charge via <img>
+            shot.imageBase64 = newImg.startsWith("data:") ? newImg : null;
+            const imgEl = $(".shot-image", card);
+            const phEl = $(".placeholder-zone", card);
+            imgEl.src = newImg;
+            imgEl.classList.remove("hidden");
+            phEl.classList.add("hidden");
+            await persistShots();
+          }
+        }
+
+        setStatus(`✅ Réponse reçue (${res.status}). Voir la console.`);
+        button.innerHTML = res.ok ? "✅ OK" : "⚠️ Erreur";
+      } catch (err) {
+        console.error(`[Storyboard] Erreur fetch ${action}:`, err);
+        setStatus("⚠️ Erreur réseau. Voir la console.");
+        button.innerHTML = "⚠️ Échec";
+      } finally {
+        setTimeout(() => {
+          button.classList.remove("loading");
+          button.innerHTML = originalText;
+        }, 1500);
+      }
+    }
+
+    // ====================================================
+    //  GESTION FORMULAIRE AGENT (CRÉATION / ÉDITION / SUPPRESSION)
+    // ====================================================
+
+    // Références DOM pour le formulaire agent
+    const agentFormContainer  = $("#agent-form-container");
+    const agentFormTitle      = $("#agent-form-title");
+    const agentFormEditId     = $("#agent-form-edit-id");
+    const agentFormName       = $("#agent-form-name");
+    const agentFormRole       = $("#agent-form-role");
+    const agentFormDesc       = $("#agent-form-desc");
+    const agentFormProvider   = $("#agent-form-provider");
+    const agentFormModel      = $("#agent-form-model");
+    const agentFormTemp       = $("#agent-form-temp");
+    const agentFormTempVal    = $("#agent-form-temp-val");
+    const agentFormPrompt     = $("#agent-form-prompt");
+    const addAgentBtn         = $("#netflix-add-agent-btn");
+    const toggleFormBtn       = $("#netflix-toggle-form-btn");
+    const formCancelBtn       = $("#agent-form-cancel");
+    const formCancelBtn2      = $("#agent-form-cancel-2");
+    const formSaveBtn         = $("#agent-form-save");
+
+    // Peuple le select des modèles en fonction du provider choisi
+    function populateModelSelect(provider) {
+      const models = PROVIDERS[provider]?.models || [];
+      agentFormModel.innerHTML = "";
+      models.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.name;
+        agentFormModel.appendChild(opt);
+      });
+    }
+
+    // Affiche le formulaire (mode création)
+    function showAgentForm(editId) {
+      agentFormContainer.classList.remove("hidden");
+      addAgentBtn.classList.add("hidden");
+      toggleFormBtn.classList.remove("hidden");
+
+      if (editId) {
+        // Mode édition : charger les données de l'agent
+        const agent = state.netflix.agents.find(a => a.id === editId);
+        if (!agent) return;
+        agentFormTitle.textContent = "✏ Modifier l'agent";
+        agentFormEditId.value = agent.id;
+        agentFormName.value = agent.name || "";
+        agentFormRole.value = agent.role || "";
+        agentFormDesc.value = agent.description || "";
+        agentFormProvider.value = agent.provider || "mistral";
+        populateModelSelect(agent.provider || "mistral");
+        agentFormModel.value = agent.model || "";
+        agentFormTemp.value = agent.temperature ?? 0.7;
+        agentFormTempVal.textContent = agent.temperature ?? 0.7;
+        agentFormPrompt.value = agent.systemPrompt || "";
+      } else {
+        // Mode création : vider le formulaire
+        agentFormTitle.textContent = "Nouvel agent";
+        agentFormEditId.value = "";
+        agentFormName.value = "";
+        agentFormRole.value = "";
+        agentFormDesc.value = "";
+        agentFormProvider.value = "mistral";
+        populateModelSelect("mistral");
+        agentFormTemp.value = 0.7;
+        agentFormTempVal.textContent = "0.7";
+        agentFormPrompt.value = "";
+      }
+    }
+
+    function hideAgentForm() {
+      agentFormContainer.classList.add("hidden");
+      addAgentBtn.classList.remove("hidden");
+      toggleFormBtn.classList.add("hidden");
+      agentFormEditId.value = "";
+    }
+
+    // Sauvegarde (création ou mise à jour)
+    async function saveAgentFromForm() {
+      const name     = agentFormName.value.trim();
+      const prompt   = agentFormPrompt.value.trim();
+      const provider = agentFormProvider.value;
+      const model    = agentFormModel.value;
+
+      if (!name) { alert("Le nom de l'agent est obligatoire."); agentFormName.focus(); return; }
+      if (!prompt) { alert("Le system prompt est obligatoire."); agentFormPrompt.focus(); return; }
+      if (!state.apiKeys[provider]) {
+        alert(`Aucune clé API pour "${PROVIDERS[provider]?.name || provider}". Ouvrez « Paramètres API » pour l'ajouter.`);
+        return;
+      }
+
+      const editId = agentFormEditId.value;
+
+      if (editId) {
+        // Mise à jour d'un agent existant
+        const idx = state.netflix.agents.findIndex(a => a.id === editId);
+        if (idx === -1) return;
+        state.netflix.agents[idx] = {
+          ...state.netflix.agents[idx],
+          name,
+          role: agentFormRole.value.trim() || state.netflix.agents[idx].role,
+          description: agentFormDesc.value.trim(),
+          provider,
+          model,
+          temperature: parseFloat(agentFormTemp.value) || 0.7,
+          systemPrompt: prompt,
+          updated: Date.now()
+        };
+        setStatus(`Agent "${name}" mis à jour (${PROVIDERS[provider]?.name}, ${model}).`);
+      } else {
+        // Création d'un nouvel agent
+        const newAgent = {
+          id: "agent-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6),
+          name,
+          role: agentFormRole.value.trim() || "",
+          description: agentFormDesc.value.trim(),
+          provider,
+          model,
+          temperature: parseFloat(agentFormTemp.value) || 0.7,
+          systemPrompt: prompt,
+          created: Date.now()
+        };
+        state.netflix.agents.push(newAgent);
+        setStatus(`Agent "${name}" créé (${PROVIDERS[provider]?.name}, ${model}).`);
+      }
+
+      await persistNetflixAgents();
+      renderNetflixAgents();
+      hideAgentForm();
+    }
+
+    // Exposé globalement pour les onclick inline dans le rendu
+    window.editAgentById = function(id) {
+      showAgentForm(id);
+      // Scroll vers le formulaire
+      agentFormContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+
+    window.deleteAgentById = async function(id) {
+      const agent = state.netflix.agents.find(a => a.id === id);
+      if (!agent) return;
+      if (!confirm(`Supprimer l'agent "${agent.name}" ?`)) return;
+      state.netflix.agents = state.netflix.agents.filter(a => a.id !== id);
+      await persistNetflixAgents();
+      renderNetflixAgents();
+      setStatus(`Agent "${agent.name}" supprimé.`);
+    };
+
+    // ====================================================
+    //  MODAL API
+    // ====================================================
+    function openApiModal() {
+      apiUrlInput.value = state.apiUrl;
+      populateApiKeysInputs();
+      apiModal.classList.remove("hidden");
+      apiModal.classList.add("flex");
+      setTimeout(() => apiUrlInput.focus(), 50);
+    }
+    function closeApiModal() {
+      apiModal.classList.add("hidden");
+      apiModal.classList.remove("flex");
+    }
+    async function saveApiSettings() {
+      state.apiUrl = apiUrlInput.value.trim();
+      // Lecture des clés depuis les inputs
+      $$('.api-key-input').forEach(input => {
+        const provider = input.dataset.apiKey;
+        state.apiKeys[provider] = input.value.trim();
+      });
+      await persistApiUrl();
+      await persistApiKeys();
+      closeApiModal();
+      const keysCount = API_PROVIDERS.filter(p => state.apiKeys[p]).length;
+      setStatus(`Paramètres enregistrés. URL${state.apiUrl ? ' ✓' : ' ⚠'} · ${keysCount} clé(s) API.`);
+    }
+    function toggleKeyVisibility(button) {
+      const input = button.parentElement.querySelector('.api-key-input');
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        button.innerHTML = '🙈 masquer';
+      } else {
+        input.type = 'password';
+        button.innerHTML = '👁️ afficher';
+      }
+    }
+
+    // ====================================================
+    //  TEST DE CONNEXION WEBHOOK
+    // ====================================================
+    async function testApiConnection() {
+      // On sauvegarde d'abord les valeurs saisies pour tester sur l'URL courante
+      const testUrl = apiUrlInput.value.trim();
+      if (!testUrl) {
+        alert("Veuillez saisir l'URL du webhook à tester.");
+        apiUrlInput.focus();
+        return;
+      }
+
+      const originalHtml = apiModalTest.innerHTML;
+      apiModalTest.disabled = true;
+      apiModalTest.classList.add("loading");
+      apiModalTest.innerHTML = "⏳ Test en cours...";
+      setStatus(`Test de connexion vers ${testUrl}…`);
+
+      const payload = {
+        action: "ping",
+        shotId: "test-connection",
+        prompt: "",
+        sceneDescription: "Test de connexion depuis le Studio Storyboard",
+        imageBase64: null,
+        apiKeys: {},
+        _meta: { source: "storyboard-mvp", test: true, timestamp: Date.now() }
+      };
+
+      try {
+        const start = performance.now();
+        const res = await fetch(testUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const elapsed = Math.round(performance.now() - start);
+
+        let data = null;
+        const ct = res.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          data = await res.json();
+        } else {
+          data = await res.text();
+        }
+
+        console.log("[Storyboard] Test connexion:", { status: res.status, ok: res.ok, elapsed, data });
+
+        if (res.ok) {
+          setStatus(`✅ Webhook joignable (${res.status}, ${elapsed} ms).`);
+          apiModalTest.innerHTML = "✅ OK";
+          alert(`✅ Connexion réussie !\n\nStatut : ${res.status}\nTemps : ${elapsed} ms\n\nRéponse (voir console pour détail) :\n${typeof data === "string" ? data.slice(0, 200) : JSON.stringify(data).slice(0, 200)}`);
+        } else {
+          setStatus(`⚠️ Webhook a répondu en erreur (${res.status}).`);
+          apiModalTest.innerHTML = "⚠️ Erreur";
+          alert(`⚠️ Le webhook a répondu mais avec une erreur.\n\nStatut : ${res.status}\n\nCorps :\n${typeof data === "string" ? data.slice(0, 300) : JSON.stringify(data).slice(0, 300)}`);
+        }
+      } catch (err) {
+        console.error("[Storyboard] Test connexion échoué:", err);
+        let hint = "";
+        const msg = (err && err.message) ? err.message : String(err);
+        if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+          hint = "\n\nCauses probables :\n• Webhook n8n non démarré\n• URL incorrecte (vérifiez le port)\n• CORS bloqué par le navigateur (activez CORS sur le nœud webhook n8n)\n• Mixed content : page servue en https:// qui appelle http://localhost";
+        }
+        setStatus("⚠️ Échec réseau. Voir la console.");
+        apiModalTest.innerHTML = "⚠️ Échec";
+        alert(`❌ Échec de connexion.\n\n${msg}${hint}`);
+      } finally {
+        setTimeout(() => {
+          apiModalTest.disabled = false;
+          apiModalTest.classList.remove("loading");
+          apiModalTest.innerHTML = originalHtml;
+        }, 1500);
+      }
+    }
+
+    // ====================================================
+    //  STUDIO NETFLIX — Génération d'agents & pipeline
+    // ====================================================
+
+    // Rôles attendus dans le pipeline (l'ordre est celui du pipeline)
+    const NETFLIX_ROLES = [
+      { key: "showrunner",         label: "Showrunner",                icon: "🎥" },
+      { key: "architecte",         label: "Architecte narratif",       icon: "🏗️" },
+      { key: "personnages",        label: "Créateur de personnages",   icon: "👤" },
+      { key: "scenes",             label: "Scénariste de scènes",      icon: "🎬" },
+      { key: "dialoguiste",        label: "Dialoguiste",               icon: "💬" },
+      { key: "genre_specialist",   label: "Spécialiste de genre",      icon: "🎭" },
+      { key: "script_doctor",      label: "Script Doctor",             icon: "🩺" }
+    ];
+
+    function nflxLog(msg, kind = "info") {
+      const colors = {
+        info: "text-slate-300",
+        ok:   "text-emerald-400",
+        warn: "text-amber-400",
+        err:  "text-rose-400",
+        step: "text-indigo-300 font-semibold"
+      };
+      const line = document.createElement("div");
+      line.className = colors[kind] || colors.info;
+      const ts = new Date().toLocaleTimeString("fr-FR");
+      line.textContent = `[${ts}] ${msg}`;
+      netflixPipelineLog.appendChild(line);
+      netflixPipelineLog.scrollTop = netflixPipelineLog.scrollHeight;
+    }
+
+    function nflxClearLog() {
+      netflixPipelineLog.innerHTML = "";
+    }
+
+    async function persistNetflixAgents() {
+      try {
+        await store.setItem(KEYS.NFLX_AGENTS, state.netflix.agents);
+      } catch (e) {
+        console.error("Erreur de sauvegarde agents Netflix:", e);
+      }
+    }
+
+    async function persistNetflixProduction() {
+      try {
+        await store.setItem(KEYS.NFLX_PRODUCTION, state.netflix.production);
+      } catch (e) {
+        console.error("Erreur de sauvegarde production Netflix:", e);
+      }
+    }
+
+    function renderNetflixAgents() {
+      netflixAgentsCount.textContent = state.netflix.agents.length + " agent(s)";
+      if (state.netflix.agents.length === 0) {
+        netflixAgentsGrid.innerHTML = '<div class="text-xs text-slate-500 italic col-span-full">Aucun agent. Cliquez sur « Ajouter un agent » pour en créer un manuellement, ou « Générer » pour la création automatique.</div>';
+        return;
+      }
+
+      // Icônes de provider
+      const providerIcons = {
+        mistral: "🌀", openai: "🟢", anthropic: "🟠", google: "🔵", custom: "🔧"
+      };
+
+      netflixAgentsGrid.innerHTML = state.netflix.agents.map(a => {
+        const roleMeta = NETFLIX_ROLES.find(r => r.key === a.role) || { icon: "🤖", label: a.role || "libre" };
+        const prov = a.provider || "mistral";
+        const provIcon = providerIcons[prov] || "🤖";
+        const provName = PROVIDERS[prov]?.name || prov;
+        const modelName = a.model || "auto";
+        // Chercher le nom lisible du modèle
+        let modelLabel = modelName;
+        if (PROVIDERS[prov]?.models) {
+          const found = PROVIDERS[prov].models.find(m => m.id === modelName);
+          if (found) modelLabel = found.name;
+        }
+        return `
+          <div class="bg-slate-900/70 border border-slate-700 rounded-md p-2.5 group relative">
+            <div class="flex items-center justify-between mb-1">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span>${roleMeta.icon}</span>
+                <span class="text-xs font-semibold text-slate-200 truncate">${escapeHtml(a.name)}</span>
+              </div>
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
+                <button onclick="editAgentById('${a.id}')" class="text-[10px] text-slate-400 hover:text-cyan-400 px-1" title="Modifier">✎</button>
+                <button onclick="deleteAgentById('${a.id}')" class="text-[10px] text-slate-400 hover:text-rose-400 px-1" title="Supprimer">✕</button>
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 line-clamp-2">${escapeHtml(a.description || "")}</p>
+            <div class="flex items-center justify-between mt-1.5 text-[10px] text-slate-500">
+              <span>${provIcon} ${provName}</span>
+              <span class="font-mono truncate ml-2">${escapeHtml(modelLabel)}</span>
+            </div>
+            <div class="text-[10px] text-slate-600 mt-0.5">🌡️ ${a.temperature ?? 0.7}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderNetflixProduction() {
+      if (!state.netflix.production) {
+        netflixProductionJson.textContent = "null";
+        return;
+      }
+      netflixProductionJson.textContent = JSON.stringify(state.netflix.production, null, 2);
+    }
+
+    function escapeHtml(str) {
+      if (str == null) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function openNetflixModal() {
+      netflixModal.classList.remove("hidden");
+      netflixModal.classList.add("flex");
+      renderNetflixAgents();
+      renderNetflixProduction();
+    }
+    function closeNetflixModal() {
+      netflixModal.classList.add("hidden");
+      netflixModal.classList.remove("flex");
+    }
+
+    // Petit wrapper Mistral : renvoie le contenu textuel du message assistant
+    async function callMistral(apiKey, model, messages, { temperature = 0.7, maxTokens = 4096 } = {}) {
+      if (!apiKey) throw new Error("Clé API Mistral manquante. Ouvrez « Paramètres API ».");
+      const res = await fetch(MISTRAL_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          temperature: temperature,
+          max_tokens: maxTokens,
+          top_p: 0.95
+        })
+      });
+      if (!res.ok) {
+        let errBody = "";
+        try {
+          const j = await res.json();
+          errBody = j.message || (j.error && j.error.message) || JSON.stringify(j);
+        } catch (_) {
+          errBody = await res.text();
+        }
+        throw new Error(`Mistral API ${res.status} : ${errBody.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      if (!content) throw new Error("Réponse Mistral vide.");
+      return content;
+    }
+
+    // ====================================================
+    //  APPELS API MULTI-PROVIDER
+    // ====================================================
+    async function callOpenAI(apiKey, model, messages, { temperature = 0.7, maxTokens = 4096 } = {}) {
+      if (!apiKey) throw new Error("Clé API OpenAI manquante. Ouvrez « Paramètres API ».");
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          temperature: temperature,
+          max_tokens: maxTokens
+        })
+      });
+      if (!res.ok) {
+        let errBody = "";
+        try { const j = await res.json(); errBody = j.error?.message || JSON.stringify(j); } catch (_) { errBody = await res.text(); }
+        throw new Error(`OpenAI API ${res.status} : ${errBody.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || "";
+    }
+
+    async function callAnthropic(apiKey, model, messages, { temperature = 0.7, maxTokens = 4096 } = {}) {
+      if (!apiKey) throw new Error("Clé API Anthropic manquante. Ouvrez « Paramètres API ».");
+      // Anthropic sépare le system prompt des messages user/assistant
+      let systemPrompt = "";
+      const anthroMessages = [];
+      for (const m of messages) {
+        if (m.role === "system") { systemPrompt += (systemPrompt ? "\n\n" : "") + m.content; }
+        else { anthroMessages.push({ role: m.role, content: m.content }); }
+      }
+      const body = {
+        model: model,
+        messages: anthroMessages,
+        max_tokens: maxTokens,
+        temperature: temperature
+      };
+      if (systemPrompt) body.system = systemPrompt;
+
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        let errBody = "";
+        try { const j = await res.json(); errBody = j.error?.message || JSON.stringify(j); } catch (_) { errBody = await res.text(); }
+        throw new Error(`Anthropic API ${res.status} : ${errBody.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      return data.content?.[0]?.text || "";
+    }
+
+    async function callGoogle(apiKey, model, messages, { temperature = 0.7, maxTokens = 4096 } = {}) {
+      if (!apiKey) throw new Error("Clé API Google manquante. Ouvrez « Paramètres API ».");
+      // Google AI utilise le endpoint compatible OpenAI
+      const url = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          temperature: temperature,
+          max_tokens: maxTokens
+        })
+      });
+      if (!res.ok) {
+        let errBody = "";
+        try { const j = await res.json(); errBody = j.error?.message || JSON.stringify(j); } catch (_) { errBody = await res.text(); }
+        throw new Error(`Google AI API ${res.status} : ${errBody.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || "";
+    }
+
+    async function callCustom(apiKey, endpoint, model, messages, { temperature = 0.7, maxTokens = 4096 } = {}) {
+      if (!apiKey) throw new Error("Clé API Custom manquante.");
+      if (!endpoint) throw new Error("Endpoint Custom non configuré. Ouvrez « Paramètres API ».");
+      // Convention : endpoint compatible OpenAI (chat/completions)
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: model || "custom-model",
+          messages: messages,
+          temperature: temperature,
+          max_tokens: maxTokens
+        })
+      });
+      if (!res.ok) {
+        let errBody = "";
+        try { const j = await res.json(); errBody = j.error?.message || JSON.stringify(j); } catch (_) { errBody = await res.text(); }
+        throw new Error(`Custom API ${res.status} : ${errBody.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || "";
+    }
+
+    // Routeur principal : dispatch vers le bon provider
+    async function callProvider(provider, apiKey, model, messages, opts = {}) {
+      switch (provider) {
+        case "mistral":   return callMistral(apiKey, model, messages, opts);
+        case "openai":    return callOpenAI(apiKey, model, messages, opts);
+        case "anthropic": return callAnthropic(apiKey, model, messages, opts);
+        case "google":    return callGoogle(apiKey, model, messages, opts);
+        case "custom":    return callCustom(apiKey, state.apiUrl || PROVIDERS.custom.endpoint, model, messages, opts);
+        default: throw new Error(`Provider "${provider}" non supporté.`);
+      }
+    }
+
+    // Nettoie une réponse LLM pour récupérer un JSON valide
+    function extractJson(text) {
+      if (!text) throw new Error("Texte vide");
+      // Cas 1 : bloc ```json ... ```
+      const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      let candidate = fenceMatch ? fenceMatch[1] : text;
+      candidate = candidate.trim();
+      // Cas 2 : trouver la première accolade ouvrante jusqu'à la dernière fermante
+      const first = candidate.indexOf("{");
+      const last = candidate.lastIndexOf("}");
+      if (first !== -1 && last !== -1 && last > first) {
+        candidate = candidate.slice(first, last + 1);
+      }
+      try {
+        return JSON.parse(candidate);
+      } catch (e) {
+        // Dernier recours : retirer les virgules traînantes
+        try {
+          const fixed = candidate.replace(/,\s*([}\]])/g, "$1");
+          return JSON.parse(fixed);
+        } catch (e2) {
+          throw new Error("JSON invalide : " + e2.message + " | Extrait : " + candidate.slice(0, 200));
+        }
+      }
+    }
+
+    // ====================================================
+    //  GÉNÉRATION DES 7 AGENTS MISTRAL
+    // ====================================================
+    async function generateNetflixAgents() {
+      const mistralKey = state.apiKeys.mistral;
+      if (!mistralKey) {
+        alert("Clé API Mistral manquante.\nOuvrez « Paramètres API » → section Clés API → renseignez la clé Mistral.");
+        openApiModal();
+        return;
+      }
+
+      const genre = netflixGenre.value;
+      const format = netflixFormat.value;
+      const theme = netflixTheme.value.trim() || "(libre — l'agent propose un concept original)";
+      const constraints = netflixConstraints.value.trim() || "(aucune contrainte spécifique)";
+
+      const genreLabel = {
+        drame: "drame adulte (dans la lignée de Marriage Story, Manchester by the Sea)",
+        thriller_psychologique: "thriller psychologique (dans la lignée de Gone Girl, Shutter Island, Mindhunter)",
+        drame_thriller: "hybride drame + thriller psychologique (dans la lignée de Prisoners, True Detective S1)"
+      }[genre] || genre;
+
+      const prompt = `Tu es un expert en écriture de scénarios pour plateformes SVOD de type Netflix, spécialisé dans le genre « ${genreLabel} ».
+
+L'utilisateur veut monter une équipe de 7 AGENTS IA spécialisés qui collaboreront en pipeline pour produire un scénario complet.
+Format cible : ${format}.
+Thème / prémisse : ${theme}
+Contraintes / ton / influences : ${constraints}
+
+Génère EXACTEMENT 7 agents avec les rôles suivants (clé "role" OBLIGATOIRE) :
+1. role: "showrunner"        → Showrunner / visionnaire global (concept, logline, ton, ambition)
+2. role: "architecte"        → Architecte narratif (structure 3 actes, beats, rythme)
+3. role: "personnages"       → Créateur de personnages (psychologie, arc, motivation, secrets)
+4. role: "scenes"            → Scénariste de scènes (découpage en scènes, lieux, action)
+5. role: "dialoguiste"       → Dialoguiste (dialogues marquants, sous-texte, tension)
+6. role: "genre_specialist"  → Spécialiste du genre « ${genreLabel} » (codes, tropes, twists, pièges à éviter)
+7. role: "script_doctor"     → Script Doctor / critique (cohérence, dramaturgie, améliorations)
+
+Chaque agent DOIT avoir des instructions adaptées au genre « ${genreLabel} » et au format ${format}, avec des références concrètes (films/séries, techniques narratives).
+
+Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans texte avant ou après :
+{
+  "agents": [
+    {
+      "role": "showrunner",
+      "name": "Nom court évocateur",
+      "description": "Description 1 phrase du rôle",
+      "systemPrompt": "Instructions détaillées (150-250 mots) — c'est le system prompt qui sera envoyé à l'IA",
+      "temperature": 0.7,
+      "model": "mistral-large-2512"
+    },
+    ... (7 entrées)
+  ]
+}`;
+
+      netflixGenerateAgents.disabled = true;
+      netflixGenerateAgents.classList.add("loading");
+      netflixGenerateAgents.innerHTML = "⏳ Génération en cours...";
+      nflxClearLog();
+      nflxLog("Génération des 7 agents IA via Mistral (" + MISTRAL_MODEL_AGENT_GEN + ")…", "step");
+
+      try {
+        const raw = await callMistral(
+          mistralKey,
+          MISTRAL_MODEL_AGENT_GEN,
+          [{ role: "user", content: prompt }],
+          { temperature: 0.8, maxTokens: 16000 }
+        );
+        const parsed = extractJson(raw);
+        if (!parsed.agents || !Array.isArray(parsed.agents) || parsed.agents.length === 0) {
+          throw new Error("Réponse Mistral sans tableau 'agents'.");
+        }
+
+        // Normalisation : on s'assure qu'on a exactement les 7 rôles attendus
+        const byRole = {};
+        parsed.agents.forEach(a => {
+          if (a && a.role) byRole[a.role] = a;
+        });
+
+        state.netflix.agents = NETFLIX_ROLES.map(meta => {
+          const a = byRole[meta.key] || {};
+          return {
+            id: "agent-" + meta.key + "-" + Date.now().toString(36),
+            role: meta.key,
+            name: (a.name || meta.label).trim(),
+            description: (a.description || "").trim(),
+            systemPrompt: (a.systemPrompt || a.instructions || "").trim(),
+            temperature: typeof a.temperature === "number" ? a.temperature : 0.7,
+            model: (a.model || MISTRAL_MODEL_PIPELINE).trim(),
+            provider: (a.provider || "mistral").trim(),
+            created: Date.now()
+          };
+        });
+
+        await persistNetflixAgents();
+        renderNetflixAgents();
+        nflxLog(`✅ ${state.netflix.agents.length} agents générés et sauvegardés.`, "ok");
+        setStatus("Agents IA Netflix générés.");
+      } catch (err) {
+        console.error(err);
+        nflxLog(`❌ ${err.message}`, "err");
+        setStatus("⚠️ Échec génération agents. Voir log.");
+      } finally {
+        netflixGenerateAgents.disabled = false;
+        netflixGenerateAgents.classList.remove("loading");
+        netflixGenerateAgents.innerHTML = '<span>🤖</span> Générer / Régénérer les agents IA';
+      }
+    }
+
+    // Récupère l'agent par rôle
+    function getAgentByRole(roleKey) {
+      return state.netflix.agents.find(a => a.role === roleKey) || null;
+    }
+
+    function getAgentById(agentId) {
+      return state.netflix.agents.find(a => a.id === agentId) || null;
+    }
+
+    // Appel d'un agent avec un payload JSON en contexte user, attendu en sortie JSON
+    // AJOUTEZ CETTE FONCTION AU DÉBUT DU SCRIPT OU DANS LA PORTÉE GLOBALE
+function sanitizeJSONResponse(rawText, maxChars = 6000) {
+    let cleaned = rawText.trim();
+    
+    // 1. Supprimer agressivement tout markdown
+    cleaned = cleaned.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // 2. Extraire UNIQUEMENT le premier objet JSON valide (du premier '{' au dernier '}')
+    const firstOpen = cleaned.indexOf('{');
+    const lastClose = cleaned.lastIndexOf('}');
+    
+    if (firstOpen === -1 || lastClose === -1 || lastClose < firstOpen) {
+        throw new Error(`Aucun objet JSON valide détecté. Réponse reçue (${cleaned.length} chars): ${cleaned.substring(0, 100)}...`);
+    }
+    
+    cleaned = cleaned.substring(firstOpen, lastClose + 1);
+    
+    // 3. Vérifier la taille (sécurité anti-hallucination)
+    if (cleaned.length > maxChars) {
+        console.warn(`⚠️ Réponse trop longue (${cleaned.length} chars). Troncation forcée.`);
+        // On ne tronque pas brutalement pour éviter de casser le JSON, on rejette si trop gros
+        // Ou on essaie de trouver la dernière virgule/fermeture valide avant la limite
+        throw new Error(`Réponse trop volumineuse (${cleaned.length} chars). Le modèle a halluciné.`);
+    }
+    
+    return cleaned;
+}
+
+// MODIFIEZ LA PARTIE QUI TRAITE LA RÉPONSE DE L'AGENT
+// Remplacez le JSON.parse() direct par :
+try {
+    const sanitized = sanitizeJSONResponse(agentResponse, 6000);
+    const data = JSON.parse(sanitized);
+    
+    // Vérification que c'est bien un objet avec la clé attendue
+    if (!data.characters || !Array.isArray(data.characters)) {
+        throw new Error("Structure JSON invalide : clé 'characters' manquante ou non-tableau.");
+    }
+    
+    // ... suite du pipeline avec data.characters
+} catch (e) {
+    console.error("❌ ÉCHEC PARSING AGENT PSYCHE:", e.message);
+    console.log("Réponse brute reçue:", agentResponse.substring(0, 500));
+    throw e; // Arrête le pipeline proprement
+}
+
+    // ====================================================
+    //  PIPELINE MULTI-AGENTS
+    // ====================================================
+    async function runNetflixPipeline() {
+      if (state.netflix.running) {
+        alert("Pipeline déjà en cours.");
+        return;
+      }
+      if (state.netflix.agents.length === 0) {
+        alert("Aucun agent. Cliquez d'abord sur « Générer les agents IA ».");
+        return;
+      }
+      const mistralKey = state.apiKeys.mistral;
+      if (!mistralKey) {
+        alert("Clé API Mistral manquante. Ouvrez « Paramètres API ».");
+        openApiModal();
+        return;
+      }
+
+      const genre = netflixGenre.value;
+      const format = netflixFormat.value;
+      const theme = netflixTheme.value.trim();
+      const constraints = netflixConstraints.value.trim();
+
+      state.netflix.running = true;
+      netflixRunPipeline.disabled = true;
+      netflixRunPipeline.classList.add("loading");
+      netflixRunPipeline.innerHTML = "⏳ Production en cours...";
+      nflxClearLog();
+      nflxLog(`🎬 Démarrage du pipeline — genre: ${genre} · format: ${format}`, "step");
+
+      // Initialisation de la production
+      const production = {
+        meta: {
+          genre,
+          format,
+          theme,
+          constraints,
+          startedAt: new Date().toISOString(),
+          model: MISTRAL_MODEL_PIPELINE
+        },
+        concept: null,        // produit par showrunner
+        structure: null,      // produit par architecte
+        characters: null,     // produit par créateur de personnages
+        scenes: null,         // produit par scénariste de scènes
+        dialogues: null,      // produit par dialoguiste
+        genreNotes: null,     // produit par spécialiste de genre
+        review: null,         // produit par script doctor
+        completedAt: null
+      };
+      state.netflix.production = production;
+      renderNetflixProduction();
+
+      try {
+        // --- ÉTAPE 1 : Showrunner ---
+        nflxLog("ÉTAPE 1/7 — Showrunner (concept, logline, ton)", "step");
+        const brief1 = `Brief de production :
+- Genre : ${genre}
+- Format : ${format}
+- Thème / prémisse : ${theme || "(libre, propose un concept original)"}
+- Contraintes : ${constraints || "(aucune)"}
+
+Produis un JSON avec cette structure exacte :
+{
+  "title": "Titre du film/série",
+  "logline": "Logline en 1-2 phrases",
+  "synopsis": "Synopsis en 200-300 mots",
+  "tone": "Description du ton (3-5 adjectifs + références)",
+  "target_audience": "Public cible",
+  "themes": ["thème 1", "thème 2", "..."],
+  "ambition": "Ambition artistique en 2-3 phrases"
+}`;
+        const raw1 = await runAgent("showrunner", brief1, { temperature: 0.85, maxTokens: 2500 });
+        production.concept = extractJson(raw1);
+        nflxLog(`   📌 « ${production.concept.title || "(sans titre)"} »`, "ok");
+        renderNetflixProduction();
+
+        // --- ÉTAPE 2 : Architecte narratif ---
+        nflxLog("ÉTAPE 2/7 — Architecte narratif (structure 3 actes)", "step");
+        const brief2 = `Concept validé :
+${JSON.stringify(production.concept, null, 2)}
+
+Construis la structure narrative en 3 actes. Réponds en JSON :
+{
+  "acts": [
+    {
+      "n": 1,
+      "title": "Nom de l'acte",
+      "summary": "Résumé 100-150 mots",
+      "beats": [{"title": "...", "description": "...", "emotional_value": "..."}]
+    },
+    { "n": 2, "title": "...", "summary": "...", "beats": [...] },
+    { "n": 3, "title": "...", "summary": "...", "beats": [...] }
+  ],
+  "central_conflict": "...",
+  "climax_description": "...",
+  "estimated_duration_min": ${format.includes("90") ? 90 : format.includes("120") ? 120 : format.includes("45") ? 45 : 50}
+}`;
+        const raw2 = await runAgent("architecte", brief2, { temperature: 0.7, maxTokens: 3500 });
+        production.structure = extractJson(raw2);
+        nflxLog(`   📌 ${production.structure.acts.length} actes, ${production.structure.acts.reduce((n,a)=>n+(a.beats||[]).length,0)} beats`, "ok");
+        renderNetflixProduction();
+
+        // --- ÉTAPE 3 : Créateur de personnages ---
+        nflxLog("ÉTAPE 3/7 — Créateur de personnages", "step");
+        const brief3 = `Concept :
+${JSON.stringify(production.concept, null, 2)}
+
+Structure :
+${JSON.stringify(production.structure, null, 2)}
+
+Crée 4-6 personnages principaux. Réponds en JSON :
+{
+  "characters": [
+    {
+      "name": "...",
+      "role": "protagonist|antagonist|ally|love_interest|supporting",
+      "age": 0,
+      "occupation": "...",
+      "psychology": "Traits psychologiques 80-120 mots",
+      "motivation": "Ce qu'il/elle veut consciemment",
+      "hidden_need": "Ce dont il/elle a vraiment besoin",
+      "secret": "Un secret qu'il/elle cache",
+      "arc": "Arc de transformation sur l'œuvre",
+      "voice": "Comment il/elle parle (niveau de langue, tics, registre)"
+    }
+  ]
+}`;
+        const raw3 = await runAgent("personnages", brief3, { temperature: 0.8, maxTokens: 3500 });
+        production.characters = extractJson(raw3);
+        nflxLog(`   📌 ${production.characters.characters.length} personnages créés`, "ok");
+        renderNetflixProduction();
+
+        // --- ÉTAPE 4 : Scénariste de scènes ---
+        nflxLog("ÉTAPE 4/7 — Scénariste de scènes (découpage)", "step");
+        const brief4 = `Concept :
+${JSON.stringify(production.concept, null, 2)}
+
+Structure :
+${JSON.stringify(production.structure, null, 2)}
+
+Personnages :
+${JSON.stringify(production.characters, null, 2)}
+
+Découpe l'œuvre en 8-12 scènes clés. Réponds en JSON :
+{
+  "scenes": [
+    {
+      "n": 1,
+      "act": 1,
+      "title": "Titre évocateur",
+      "location": "Lieu",
+      "time_of_day": "JOUR|NUIT|AUBE|CRÉPUSCULE",
+      "characters_present": ["nom1", "nom2"],
+      "action": "Description de l'action 80-120 mots",
+      "purpose": "Fonction narrative (setup, inciting incident, rising action, climax, resolution...)",
+      "estimated_duration_min": 5
+    }
+  ]
+}`;
+        const raw4 = await runAgent("scenes", brief4, { temperature: 0.75, maxTokens: 4500 });
+        production.scenes = extractJson(raw4);
+        nflxLog(`   📌 ${production.scenes.scenes.length} scènes découpées`, "ok");
+        renderNetflixProduction();
+
+        // --- ÉTAPE 5 : Dialoguiste ---
+        nflxLog("ÉTAPE 5/7 — Dialoguiste (scènes clés)", "step");
+        const brief5 = `Voici les scènes à dialoguer (concentre-toi sur les 4-6 scènes les plus dramatiques) :
+${JSON.stringify(production.scenes, null, 2)}
+
+Personnages (pour la voix) :
+${JSON.stringify(production.characters, null, 2)}
+
+Pour chaque scène sélectionnée, écris les dialogues clés. Réponds en JSON :
+{
+  "dialogues": [
+    {
+      "scene_n": 1,
+      "lines": [
+        {"character": "nom", "text": "réplique", "direction": "(optionnel: didascalie de jeu)"},
+        ...
+      ],
+      "key_exchange": "Description 1 phrase de l'enjeu émotionnel"
+    }
+  ]
+}`;
+        const raw5 = await runAgent("dialoguiste", brief5, { temperature: 0.9, maxTokens: 4500 });
+        production.dialogues = extractJson(raw5);
+        nflxLog(`   📌 ${production.dialogues.dialogues.length} scènes dialoguées`, "ok");
+        renderNetflixProduction();
+
+        // --- ÉTAPE 6 : Spécialiste de genre ---
+        nflxLog("ÉTAPE 6/7 — Spécialiste de genre (vérification codes)", "step");
+        const brief6 = `Genre cible : ${genre}
+
+Production actuelle :
+- Concept : ${JSON.stringify(production.concept, null, 2)}
+- Structure : ${JSON.stringify(production.structure, null, 2)}
+- Scènes : ${JSON.stringify(production.scenes, null, 2)}
+
+Analyse comment l'œuvre respecte, subvertit ou manque les codes du genre. Réponds en JSON :
+{
+  "genre_compliance_score": 0,
+  "strengths": ["..."],
+  "weaknesses": ["..."],
+  "missing_tropes": ["codes du genre absents"],
+  "twist_suggestion": "Idée de twist propre au genre",
+  "psychological_tension_notes": "Analyse de la tension psychologique",
+  "recommendations": ["action concrète 1", "..."]
+}`;
+        const raw6 = await runAgent("genre_specialist", brief6, { temperature: 0.7, maxTokens: 3000 });
+        production.genreNotes = extractJson(raw6);
+        nflxLog(`   📌 Score genre : ${production.genreNotes.genre_compliance_score}/10`, "ok");
+        renderNetflixProduction();
+
+        // --- ÉTAPE 7 : Script Doctor ---
+        nflxLog("ÉTAPE 7/7 — Script Doctor (review finale)", "step");
+        const brief7 = `Production complète à reviewer :
+${JSON.stringify({
+  concept: production.concept,
+  structure: production.structure,
+  characters: production.characters,
+  scenes: production.scenes,
+  dialogues: production.dialogues,
+  genreNotes: production.genreNotes
+}, null, 2)}
+
+Fais la critique dramaturgique finale. Réponds en JSON :
+{
+  "overall_grade": "A+|A|B+|B|C+|C",
+  "coherence_score": 0,
+  "pacing_score": 0,
+  "dialogue_score": 0,
+  "emotional_impact_score": 0,
+  "top_3_strengths": ["..."],
+  "top_3_issues": ["..."],
+  "mandatory_rewrites": ["..."],
+  "final_verdict": "Verdict 100-150 mots"
+}`;
+        const raw7 = await runAgent("script_doctor", brief7, { temperature: 0.6, maxTokens: 3000 });
+        production.review = extractJson(raw7);
+        nflxLog(`   📌 Verdict : ${production.review.overall_grade} (${production.review.final_verdict.slice(0,80)}…)`, "ok");
+        renderNetflixProduction();
+
+        production.completedAt = new Date().toISOString();
+        await persistNetflixProduction();
+        nflxLog(`✅ Pipeline terminé en ${(new Date(production.completedAt) - new Date(production.meta.startedAt)) / 1000}s`, "ok");
+        nflxLog(`💡 Tu peux maintenant cliquer sur « Pousser les scènes vers le storyboard ».`, "info");
+        setStatus("Production Netflix terminée ✓");
+      } catch (err) {
+        console.error(err);
+        nflxLog(`❌ ${err.message}`, "err");
+        setStatus("⚠️ Pipeline interrompu. Voir log.");
+        // On persiste quand même l'état partiel
+        production.completedAt = new Date().toISOString();
+        production.error = err.message;
+        await persistNetflixProduction();
+      } finally {
+        state.netflix.running = false;
+        netflixRunPipeline.disabled = false;
+        netflixRunPipeline.classList.remove("loading");
+        netflixRunPipeline.innerHTML = '<span>🎬</span> Lancer la production';
+      }
+    }
+
+    // ====================================================
+    //  PUSH DES SCÈNES VERS LE STORYBOARD
+    // ====================================================
+    async function pushScenesToStoryboard() {
+      const production = state.netflix.production;
+      if (!production || !production.scenes || !production.scenes.scenes) {
+        alert("Aucune scène à pousser. Lancez d'abord la production.");
+        return;
+      }
+
+      // Mapping dialogues par numéro de scène
+      const dialoguesByScene = {};
+      if (production.dialogues && Array.isArray(production.dialogues.dialogues)) {
+        production.dialogues.dialogues.forEach(d => {
+          dialoguesByScene[d.scene_n] = d;
+        });
+      }
+
+      const scenes = production.scenes.scenes;
+      const title = (production.concept && production.concept.title) || "Sans titre";
+
+      const newShots = scenes.map(scene => {
+        const dlg = dialoguesByScene[scene.n];
+        let promptParts = [];
+        promptParts.push(`Film : ${title} (${production.meta.genre})`);
+        promptParts.push(`Scène ${scene.n} — Acte ${scene.act} : ${scene.title}`);
+        promptParts.push(`Lieu : ${scene.location} · ${scene.time_of_day}`);
+        promptParts.push(`Personnages : ${(scene.characters_present || []).join(", ")}`);
+        promptParts.push(`Action : ${scene.action}`);
+        if (dlg && dlg.lines && dlg.lines.length) {
+          promptParts.push("Dialogues clés :");
+          dlg.lines.slice(0, 6).forEach(l => {
+            promptParts.push(`  ${l.character}${l.direction ? " " + l.direction : ""}: "${l.text}"`);
+          });
+        }
+        promptParts.push(`Fonction narrative : ${scene.purpose}`);
+
+        let descParts = [];
+        descParts.push(`Scène ${scene.n}/${scenes.length} — ${scene.title}`);
+        descParts.push(`Acte ${scene.act} · ${scene.location} · ${scene.time_of_day}`);
+        descParts.push(`Personnages : ${(scene.characters_present || []).join(", ")}`);
+        descParts.push(`≈ ${scene.estimated_duration_min || 5} min`);
+        descParts.push("");
+        descParts.push(scene.action);
+        if (dlg && dlg.key_exchange) {
+          descParts.push("");
+          descParts.push(`Enjeu : ${dlg.key_exchange}`);
+        }
+
+        return {
+          id: uid(),
+          imageBase64: null,
+          sceneDescription: descParts.join("\n"),
+          aiPrompt: promptParts.join("\n"),
+          _netflixSceneN: scene.n,
+          _netflixTitle: scene.title
+        };
+      });
+
+      state.shots = state.shots.concat(newShots);
+      await persistShots();
+      renderAll();
+      nflxLog(`🎞️ ${newShots.length} scènes poussées vers le storyboard.`, "ok");
+      setStatus(`${newShots.length} scènes ajoutées au storyboard.`);
+      // Laisse la modale ouverte pour permettre un autre push, mais scroll la timeline
+      $("#timeline").scrollTo({ left: $("#timeline").scrollWidth, behavior: "smooth" });
+    }
+
+    // ====================================================
+    //  MODAL CONFIRM VIDAGE
+    // ====================================================
+    function openConfirmModal() {
+      confirmModal.classList.remove("hidden");
+      confirmModal.classList.add("flex");
+    }
+    function closeConfirmModal() {
+      confirmModal.classList.add("hidden");
+      confirmModal.classList.remove("flex");
+    }
+
+    // ====================================================
+    //  SORTABLEJS — réordonnancement
+    // ====================================================
+    let sortableInstance = null;
+    function initSortable() {
+      sortableInstance = Sortable.create(shotsContainer, {
+        animation: 150,
+        handle: ".drag-handle",
+        ghostClass: "sortable-ghost",
+        chosenClass: "sortable-chosen",
+        dragClass: "sortable-drag",
+        // Empêche #empty-state d'être dragué
+        filter: ".no-drag",
+        onMove: (evt) => {
+          // interdit le drop sur l'empty-state
+          if (evt.related === emptyState) return false;
+        },
+        onEnd: (evt) => {
+          if (evt.oldIndex === evt.newIndex) return;
+          // Reconstruit le tableau d'après l'ordre du DOM
+          const orderedIds = $$(".shot-card", shotsContainer).map(c => c.dataset.id);
+          state.shots = orderedIds
+            .map(id => getShotById(id))
+            .filter(Boolean);
+          reindex();
+          persistShots();
+          setStatus("Ordre des plans mis à jour.");
+        }
+      });
+    }
+
+    // ====================================================
+    //  ÉVÉNEMENTS GLOBAUX
+    // ====================================================
+    btnAdd.addEventListener("click", addCard);
+    btnClear.addEventListener("click", () => {
+      if (state.shots.length === 0) {
+        setStatus("Rien à vider.");
+        return;
+      }
+      openConfirmModal();
+    });
+    btnApi.addEventListener("click", openApiModal);
+
+    apiModalClose.addEventListener("click", closeApiModal);
+    apiModalCancel.addEventListener("click", closeApiModal);
+    apiModalSave.addEventListener("click", saveApiSettings);
+    apiModalTest.addEventListener("click", testApiConnection);
+    apiUrlInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") saveApiSettings();
+      if (e.key === "Escape") closeApiModal();
+    });
+    // Toggle visibilité des clés API (délégation)
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.toggle-visibility');
+      if (btn && apiModal.contains(btn)) {
+        toggleKeyVisibility(btn);
+      }
+    });
+    // Entrée dans un champ clé → Enter valide la modale
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('api-key-input')) {
+        e.preventDefault();
+        saveApiSettings();
+      }
+    });
+
+    // --- Studio Netflix ---
+    btnNetflix.addEventListener("click", openNetflixModal);
+    netflixModalClose.addEventListener("click", closeNetflixModal);
+    netflixModalCloseBottom.addEventListener("click", closeNetflixModal);
+    netflixGenerateAgents.addEventListener("click", generateNetflixAgents);
+    netflixRunPipeline.addEventListener("click", runNetflixPipeline);
+    netflixPushStoryboard.addEventListener("click", pushScenesToStoryboard);
+
+    // --- Formulaire agent manuel ---
+    addAgentBtn.addEventListener("click", () => showAgentForm());
+    toggleFormBtn.addEventListener("click", hideAgentForm);
+    formCancelBtn.addEventListener("click", hideAgentForm);
+    formCancelBtn2.addEventListener("click", hideAgentForm);
+    formSaveBtn.addEventListener("click", saveAgentFromForm);
+
+    // Mise à jour dynamique du select modèle quand le provider change
+    agentFormProvider.addEventListener("change", () => {
+      populateModelSelect(agentFormProvider.value);
+    });
+    // Affichage live de la température
+    agentFormTemp.addEventListener("input", () => {
+      agentFormTempVal.textContent = agentFormTemp.value;
+    });
+    // Initialiser le select modèle au chargement
+    populateModelSelect("mistral");
+
+    confirmModalCancel.addEventListener("click", closeConfirmModal);
+    confirmModalOk.addEventListener("click", async () => {
+      await clearAll();
+      closeConfirmModal();
+    });
+
+    // Fermer modals au clic sur le backdrop
+    [apiModal, confirmModal, netflixModal].forEach(modal => {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          modal.classList.add("hidden");
+          modal.classList.remove("flex");
+        }
+      });
+    });
+
+    // Raccourci clavier : "N" pour nouveau plan
+    document.addEventListener("keydown", (e) => {
+      const tag = (e.target.tagName || "").toLowerCase();
+      const isTyping = tag === "input" || tag === "textarea" || e.target.isContentEditable;
+      if (isTyping) return;
+      if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        addCard();
+      }
+    });
+
+    // ====================================================
+    //  INITIALISATION
+    // ====================================================
+    async function init() {
+      try {
+        setStatus("Chargement du projet…");
+        await loadAll();
+        renderAll();
+        initSortable();
+        setStatus(state.shots.length > 0
+          ? "Projet chargé depuis IndexedDB."
+          : "Nouveau projet. Ajoutez votre premier plan.");
+      } catch (e) {
+        console.error("Init error:", e);
+        setStatus("⚠️ Erreur lors du chargement.");
+      }
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>

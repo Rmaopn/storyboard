@@ -1,0 +1,110 @@
+{
+  "engine_metadata": {
+    "version": "1.0",
+    "purpose": "Automated Narrative to Visual Pipeline Conversion",
+    "input_format": "Episode Outline / Scene Description",
+    "output_format": "Structured JSON for Image/Video/Audio Generation"
+  },
+
+  "narrative_decomposition_rules": {
+    "scene_breakdown_logic": {
+      "max_shots_per_scene": 5,
+      "min_shot_duration_seconds": 3,
+      "transition_types": ["Cut", "Fade to Black", "Cross Dissolve", "Match Cut"],
+      "pacing_modifier": "Slow for tension, Fast for action/confrontation"
+    },
+    "emotional_to_visual_mapping": {
+      "fear": {
+        "lighting": "High Contrast, Deep Shadows",
+        "camera": "Handheld, Dutch Angle, Close-up",
+        "color_grade": "Desaturated, Cold Blue/Green tint"
+      },
+      "nostalgia": {
+        "lighting": "Soft, Golden Hour, Backlit",
+        "camera": "Slow Dolly, Shallow Depth of Field",
+        "color_grade": "Warm Amber, Slight Bloom effect"
+      },
+      "anger": {
+        "lighting": "Hard Top-lighting, Harsh Shadows",
+        "camera": "Static, Low Angle, Tight Framing",
+        "color_grade": "High Saturation, Red/Orange accents"
+      }
+    }
+  },
+
+  "prompt_templates": {
+    "master_image_prompt": {
+      "structure": "[SUBJECT_DESCRIPTION], [ACTION/POSE], [ENVIRONMENT/LOCATION], [LIGHTING_PRESET], [CAMERA_SPECS], [STYLE_KEYWORDS], --ar 2.39:1 --v 6.0",
+      "style_keywords": [
+        "cinematic lighting", "photorealistic", "8k", "anamorphic lens", "film grain", "color graded", "neo-noir aesthetic"
+      ]
+    },
+    
+    "master_video_prompt": {
+      "structure": "Camera movement: [CAMERA_MOVEMENT]. Subject action: [ACTION_DETAILS]. Atmosphere: [MOOD_DESC]. Lighting: [LIGHTING_TYPE]. High quality, smooth motion, consistent character.",
+      "motion_presets": {
+        "static_tension": "Subtle breathing movement, slight head turn, eyes shifting",
+        "dynamic_walk": "Steady walking pace, fabric moving with wind, background parallax",
+        "intense_confrontation": "Rapid head movements, aggressive gestures, camera shake on impact"
+      }
+    },
+
+    "voice_generation_params": {
+      "anthony_voice": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": "Deep, calm, measured, slightly raspy"
+      },
+      "jamie_voice": {
+        "stability": 0.65,
+        "similarity_boost": 0.80,
+        "style": "Soft, hesitant, breathy when stressed, firm when defiant"
+      },
+      "franz_voice": {
+        "stability": 0.90,
+        "similarity_boost": 0.95,
+        "style": "Grave, authoritative, slow, menacing, smooth"
+      }
+    }
+  },
+
+  "pipeline_execution_steps": [
+    {
+      "step_id": 1,
+      "name": "SYNOPSIS_EXPANSION",
+      "input": "Episode Title & Summary",
+      "action": "Expand into 5-7 key narrative beats using SERIES_BIBLE context"
+    },
+    {
+      "step_id": 2,
+      "name": "SCENE_BREAKDOWN",
+      "input": "Narrative Beats",
+      "action": "Convert beats into specific scenes with location and character tags"
+    },
+    {
+      "step_id": 3,
+      "name": "SHOT_LIST_GENERATION",
+      "input": "Scenes",
+      "action": "Define camera angles, lighting presets (from PRODUCTION_RULES), and movement for each shot"
+    },
+    {
+      "step_id": 4,
+      "name": "PROMPT_ENGINEERING",
+      "input": "Shot List + Character JSONs",
+      "action": "Generate final Image and Video prompts using MASTER_PROMPT templates"
+    },
+    {
+      "step_id": 5,
+      "name": "AUDIO_SCRIPTING",
+      "input": "Dialogue & Action",
+      "action": "Extract dialogue for Voice AI and describe SFX/Foley for Audio layer"
+    }
+  ],
+
+  "continuity_checklist": [
+    "Character wardrobe consistency check",
+    "Time of day lighting consistency",
+    "Emotional arc progression validation",
+    "Prop placement verification (e.g., broken glass in Ep 4 must remain if scene continues)"
+  ]
+}

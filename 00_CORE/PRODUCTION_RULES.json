@@ -1,0 +1,75 @@
+{
+  "production_rules": {
+    "cinematography_standards": {
+      "aspect_ratio": "2.39:1 (Cinemascope)",
+      "resolution": "4K UHD",
+      "frame_rate": "24fps",
+      "lens_profile": "Anamorphic (characterized by horizontal lens flares and oval bokeh)"
+    },
+    
+    "lighting_presets": {
+      "anthony_home": {
+        "type": "Warm Domestic",
+        "key_light": "Soft, 3200K (Tungsten)",
+        "fill_light": "Low intensity to maintain shadows",
+        "mood": "Safe, intimate, slightly melancholic"
+      },
+      "jamie_apartment": {
+        "type": "Cold Isolation",
+        "key_light": "Hard, 5600K (Daylight/Moonlight)",
+        "fill_light": "Minimal, high contrast",
+        "mood": "Vulnerable, sterile, tense"
+      },
+      "franz_presence": {
+        "type": "Chiaroscuro / Noir",
+        "key_light": "Hard side-lighting (Rembrandt style)",
+        "shadow_density": "Deep blacks (Zone 0-1)",
+        "mood": "Threatening, mysterious, predatory"
+      },
+      "street_night": {
+        "type": "Urban Neon",
+        "key_light": "Mixed sources (Street lamps + Neon signs)",
+        "color_tint": "Teal and Orange contrast",
+        "mood": "Lonely, cinematic, reflective"
+      }
+    },
+
+    "camera_movement_engine": {
+      "emotional_mapping": {
+        "tension_fear": {
+          "movement": "Slow push-in (Dolly)",
+          "speed": "Very slow (10% speed)",
+          "stabilization": "Handheld micro-shakes for anxiety"
+        },
+        "confrontation": {
+          "movement": "Static or slight orbit",
+          "speed": "Neutral",
+          "stabilization": "Locked-off tripod for intensity"
+        },
+        "nostalgia_memory": {
+          "movement": "Slow pan or gentle float",
+          "speed": "Smooth",
+          "stabilization": "Gimbal smooth"
+        },
+        "action_violence": {
+          "movement": "Quick whip-pans or chaotic handheld",
+          "speed": "Fast",
+          "stabilization": "Raw, unpolished"
+        }
+      }
+    },
+
+    "shot_composition_rules": {
+      "dialogue_scenes": "Over-the-shoulder (OTS) with shallow depth of field (f/1.8)",
+      "internal_monologue": "Extreme Close-Up (ECU) on eyes or mouth",
+      "establishing_shots": "Wide angle (24mm) with leading lines",
+      "franz_stalking": "Long lens (85mm+) from behind objects, voyeuristic angle"
+    },
+
+    "audio_visual_sync": {
+      "silence_usage": "Mandatory before major plot twists",
+      "breathing_focus": "Audio peaks must match visual close-ups on chest/face",
+      "ambient_layering": "City noise must decrease as character isolation increases"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "export_metadata": {
+    "version": "1.0",
+    "purpose": "Standardizing the final output format for editing and publishing"
+  },
+
+  "video_export_specs": {
+    "resolution": "3840x2160 (4K)",
+    "codec": "H.265 (HEVC)",
+    "bitrate": "50-80 Mbps",
+    "color_space": "Rec.709",
+    "audio_format": "AAC, 48kHz, 320kbps"
+  },
+
+  "asset_delivery_structure": {
+    "folder_naming": "EP{Number}_{Title}",
+    "subfolders": [
+      "01_RAW_IMAGES",
+      "02_RAW_VIDEOS",
+      "03_AUDIO_STEMS",
+      "04_FINAL_EDIT",
+      "05_THUMBNAILS"
+    ]
+  },
+
+  "qa_final_checklist": [
+    "Check for flickering in AI video generation",
+    "Verify lip-sync accuracy for dialogue scenes",
+    "Ensure color grading matches SERIES_BIBLE palette",
+    "Confirm no watermarks or AI artifacts in final render",
+    "Validate audio levels (Dialogue > Music > SFX)"
+  ],
+
+  "publishing_metadata": {
+    "title_format": "Dramaia: Episode {Number} - {Title}",
+    "description_template": "In this episode, {Summary}. Part of the Dramaia series exploring the unwritten pages of the past.",
+    "tags": ["#AICinema", "#Dramaia", "#Storytelling", "#NeoNoir", "#ShortFilm"]
+  }
+}

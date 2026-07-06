@@ -1,0 +1,51 @@
+{
+  "props_metadata": {
+    "version": "1.0",
+    "purpose": "Tracking critical physical objects for visual consistency and narrative symbolism"
+  },
+
+  "critical_props": {
+    "smartphone_anthony": {
+      "id": "PROP_001",
+      "description": "Modern black smartphone, sleek design, no visible case",
+      "symbolism": "Connection to the past, source of guilt and hope",
+      "visual_rules": "Screen light should be cool blue in night scenes",
+      "continuity_status": "Sent message in Ep 3, currently at Anthony's home"
+    },
+    "smartphone_jamie": {
+      "id": "PROP_002",
+      "description": "White or light-colored smartphone, slightly older model",
+      "symbolism": "Lifeline, vulnerability, intrusion of the outside world",
+      "visual_rules": "Often shown in close-up, screen illumination on face",
+      "continuity_status": "Received message in Ep 4, currently in Jamie's apartment"
+    },
+    "broken_glass_juice": {
+      "id": "PROP_003",
+      "description": "Shattered clear glass, amber-colored liquid (juice) spilled on dark floor",
+      "symbolism": "Violated safety, sudden violence, mess that cannot be easily ignored",
+      "visual_rules": "Must reflect light sources, sharp edges visible in close-ups",
+      "continuity_status": "Created in Ep 4 climax, must remain until cleaned in Ep 5/6"
+    },
+    "house_keys_anthony": {
+      "id": "PROP_004",
+      "description": "Simple metal keys on a small ring",
+      "symbolism": "Access to sanctuary, responsibility, fatherhood",
+      "visual_rules": "Metallic glint, sound of jingling is important for audio",
+      "continuity_status": "Used in Ep 3 to enter home"
+    },
+    "white_bathrobe_jamie": {
+      "id": "PROP_005",
+      "description": "Plush white bathrobe, slightly oversized",
+      "symbolism": "Vulnerability, intimacy, domestic peace disrupted",
+      "visual_rules": "Texture must look soft and heavy, contrasts with cold environment",
+      "continuity_status": "Worn by Jamie in Ep 4, still wearing it at start of Ep 5"
+    }
+  },
+
+  "ai_generation_notes": {
+    "consistency_rule": "Always use the same 3D model or reference image for these props across all episodes",
+    "negative_prompts": [
+      "wrong color phone", "plastic looking glass", "cartoon keys", "messy liquid physics"
+    ]
+  }
+}

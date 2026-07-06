@@ -1,0 +1,100 @@
+{
+  "character_id": "JAMIE_001",
+  "name": "Jamie",
+  "role": "The Past / The Catalyst / Mother",
+  "age_range": "28-35",
+  "ethnicity": "Sub-Saharan African",
+  
+  "physical_profile": {
+    "face_shape": "Oval, slightly elongated with discreet angular jawline",
+    "skin_tone": "Medium to dark brown, warm undertones, natural texture with visible pores",
+    "eyes": {
+      "color": "Dark brown, almost black",
+      "shape": "Almond",
+      "expression": "Neutral, direct, posited, hiding deep vulnerability"
+    },
+    "hair": {
+      "style": "Box braids gathered in a neat bun at the nape of the neck",
+      "color": "Deep black with subtle natural highlights",
+      "density": "Dense, thick, disciplined"
+    },
+    "body": {
+      "height_cm": 168,
+      "build": "Slim, slender, fine silhouette with long legs",
+      "posture": "Upright, natural, relaxed but maintaining a dignified bearing"
+    },
+    "distinctive_features": [
+      "High, marked cheekbones",
+      "Discrete marks/freckles on cheeks",
+      "Full, well-defined lips with a slightly fuller lower lip"
+    ]
+  },
+
+  "psychological_profile": {
+    "core_traits": ["Resilient", "Vulnerable", "Dignified", "Nostalgic", "Fearful"],
+    "current_state": "Living a quiet life but haunted by the return of Anthony and the threat of Franz",
+    "fears": "Franz's violence, losing her peace, the disruption of her current stability",
+    "motivations": "Protecting her solitude, understanding her past with Anthony, surviving Franz's obsession"
+  },
+
+  "behavioral_engine": {
+    "voice_tone": "Soft, hesitant when stressed, firm when setting boundaries, breathy when afraid",
+    "speech_patterns": "Uses pauses to gather thoughts, voice tends to drop in volume when intimidated",
+    "micro_expressions": [
+      "Biting lower lip when anxious",
+      "Widening eyes slightly at sudden noises",
+      "Tightening grip on objects (like her robe) when feeling exposed"
+    ],
+    "gestures": [
+      "Touching her neck or collarbone when uncomfortable",
+      "Crossing arms to create a barrier",
+      "Slow, deliberate movements to avoid drawing attention"
+    ],
+    "walk_cycle": "Light steps, cautious, head often slightly turned as if listening for danger"
+  },
+
+  "wardrobe_and_props": {
+    "style": "Neutral, refined, comfortable, minimalist",
+    "key_items": [
+      "White bathrobe (symbol of vulnerability in Ep 4)",
+      "Fitted jeans and simple tops",
+      "Subtle jewelry"
+    ],
+    "accessories": [
+      "Smartphone (lifeline to Anthony)",
+      "House keys",
+      "Bath products (petals, oils - symbol of her attempt at peace)"
+    ]
+  },
+
+  "relationships": {
+    "Anthony": "First love, unresolved emotional connection, source of both comfort and danger",
+    "Franz": "Source of terror, obsessive stalker, figure of authority and threat",
+    "Current_Life": "Implied stability that she is trying to protect from her past"
+  },
+
+  "ai_production_constraints": {
+    "master_prompt_keywords": [
+      "cinematic lighting", "soft focus", "emotional depth", "photorealistic", "8k", "natural skin texture", "moody interior"
+    ],
+    "negative_prompts": [
+      "heavy makeup", "cartoonish", "bright neon colors", "distorted features", "bad anatomy", "text", "watermark", "plastic skin"
+    ],
+    "consistency_locks": {
+      "hair_style": "Must always be box braids in a bun unless specified otherwise",
+      "skin_texture": "Must show realistic warm brown tones and natural imperfections",
+      "eye_color": "Must remain very dark brown/black"
+    },
+    "camera_preferences": {
+      "shot_type": "Close-ups for emotional vulnerability, over-the-shoulder for tension",
+      "angle": "Eye-level to convey equality, or high-angle when she is vulnerable to Franz"
+    }
+  },
+
+  "story_arc_data": {
+    "episode_1_status": "Reconnected with Anthony, invited him up but respected his refusal",
+    "episode_2_status": "Unaware of the confrontation between Anthony and Franz",
+    "episode_3_status": "Received text from Anthony, unaware she is being watched",
+    "episode_4_status": "Invaded by Franz in her apartment, peak terror, cliffhanger with Anthony's text"
+  }
+}
