@@ -1,1 +1,100 @@
+}
+"character_id": "ANTHONY_001",
+  "name": "Anthony",
+  "role": "Protagonist / Father / Ex-lover",
+  "age_range": "40-45",
+  "ethnicity": "Métis / Afro-descendant",
+  
+  "physical_profile": {
+    "face_shape": "Oval elongated, rectangular tendency, marked jawline",
+    "skin_tone": "Medium brown / Café au lait, matte to slightly satin",
+    "eyes": {
+      "color": "Dark brown, almost dark hazel",
+      "shape": "Almond",
+      "expression": "Neutral, direct, pensive, heavy lids with slight dark circles"
+    },
+    "hair": {
+      "style": "Long fine dreadlocks tied in a high ponytail",
+      "color": "Very dark brown/black with warm chestnut-reddish highlights in light",
+      "density": "Thick, concentrated at the crown"
+    },
+    "body": {
+      "height_cm": 180,
+      "build": "Slim, lean, lightly athletic",
+      "posture": "Upright, open, natural but carrying hidden tension"
+    },
+    "distinctive_features": [
+      "Short beard/discrete mustache",
+      "Slight recession at temples",
+      "Fine wrinkles on forehead and crow's feet indicating stress/maturity"
+    ]
+  },
 
+  "psychological_profile": {
+    "core_traits": ["Calm", "Protective", "Secretive", "Loyal", "Melancholic"],
+    "current_state": "Haunted by the past, torn between his current family stability and unresolved feelings for Jamie",
+    "fears": "Losing his family, Franz's violence, the truth about his past coming to light",
+    "motivations": "Protecting his daughter and partner, finding closure with Jamie"
+  },
+
+  "behavioral_engine": {
+    "voice_tone": "Deep, calm, measured, slightly raspy when emotional",
+    "speech_patterns": "Speaks little, chooses words carefully, uses silence as a tool",
+    "micro_expressions": [
+      "Slight tightening of the jaw when threatened",
+      "Softening of the eyes when looking at family",
+      "Subtle hesitation before touching objects or people"
+    ],
+    "gestures": [
+      "Rubbing the back of his neck when stressed",
+      "Gentle, deliberate movements with family",
+      "Rigid, mechanical walking when leaving a conflict"
+    ],
+    "walk_cycle": "Steady, purposeful, shoulders slightly back, head held high but gaze often lowered in thought"
+  },
+
+  "wardrobe_and_props": {
+    "style": "Minimalist, monochrome, sober",
+    "key_items": [
+      "Dark fitted t-shirts or sweaters",
+      "Structured jackets",
+      "Simple trousers"
+    ],
+    "accessories": [
+      "Smartphone (crucial plot device)",
+      "House keys (symbol of his sanctuary)"
+    ]
+  },
+
+  "relationships": {
+    "Jamie": "Past love, unresolved tension, protective instinct, 'the one that got away'",
+    "Franz": "High school rival, current threat, source of danger and intimidation",
+    "Partner_at_home": "Current stability, mother of his child, object of guilt and deep affection",
+    "Daughter": "Primary motivation, symbol of innocence and fragility"
+  },
+
+  "ai_production_constraints": {
+    "master_prompt_keywords": [
+      "cinematic lighting", "shallow depth of field", "photorealistic", "8k", "anamorphic lens", "moody atmosphere"
+    ],
+    "negative_prompts": [
+      "cartoon", "3d render", "bright colors", "smiling excessively", "messy hair", "distorted limbs", "bad anatomy", "text", "watermark"
+    ],
+    "consistency_locks": {
+      "hair_style": "Must always be dreadlocks in high ponytail unless specified otherwise",
+      "facial_hair": "Short beard must be present",
+      "skin_texture": "Must show realistic pores and slight imperfections"
+    },
+    "camera_preferences": {
+      "shot_type": "Medium close-ups for emotional scenes, wide shots for isolation",
+      "angle": "Eye-level or slightly low-angle to convey dignity"
+    }
+  },
+
+  "story_arc_data": {
+    "episode_1_status": "Reconnected with Jamie, refused to enter her apartment to protect his current life",
+    "episode_2_status": "Confronted by Franz, established boundaries, returned to family",
+    "episode_3_status": "Sent text to Jamie, observed by Franz, internal conflict peak",
+    "evolution_path": "From passive observer to active protector against Franz's threats"
+  }
+}
